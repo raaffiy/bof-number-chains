@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TeamSelector } from "@/components/TeamSelector";
 import { BoardSelector } from "@/components/BoardSelector";
@@ -10,12 +10,18 @@ import { LeaderboardModal } from "@/components/LeaderboardModal";
 import { TEAMS_DATA, BOARDS_DATA, Team, GameBoard } from "@/lib/game-data";
 import { playSound } from "@/lib/sound";
 import {
+  submitGameResultToSupabase,
+  fetchSubmissionsFromSupabase,
+  isSupabaseConfigured,
+} from "@/lib/supabase";
+import {
   Trophy,
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
   Layers,
   Flame,
+  Database,
 } from "lucide-react";
 
 export default function Home() {
@@ -26,6 +32,9 @@ export default function Home() {
   const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+  const [dbSyncStatus, setDbSyncStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   // Per-team progress tracker
   const [teamProgress, setTeamProgress] = useState<
@@ -56,7 +65,7 @@ export default function Home() {
     return initial;
   });
 
-  // Result overlay state with 5-variable verification
+  // Result overlay state with 5/6/7 variable verification
   const [overlayState, setOverlayState] = useState<{
     isOpen: boolean;
     isCorrect: boolean;
@@ -65,6 +74,42 @@ export default function Home() {
     stepResults: Record<string, boolean>;
     timeSpentSeconds: number;
   } | null>(null);
+
+  // Sync with Supabase on mount
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    fetchSubmissionsFromSupabase().then((res) => {
+      if (res.success && res.data && res.data.length > 0) {
+        console.log(`[Supabase] Memuat ${res.data.length} riwayat jawaban dari database.`);
+        setTeamProgress((prev) => {
+          const updated = { ...prev };
+          res.data.forEach((sub) => {
+            if (!updated[sub.team_id]) {
+              updated[sub.team_id] = {
+                solvedBoards: [],
+                totalScore: 0,
+                boardTimes: {},
+              };
+            }
+            if (sub.is_correct) {
+              if (!updated[sub.team_id].solvedBoards.includes(sub.board_id)) {
+                updated[sub.team_id].solvedBoards.push(sub.board_id);
+                updated[sub.team_id].totalScore += sub.points_awarded;
+              }
+              if (
+                !updated[sub.team_id].boardTimes[sub.board_id] ||
+                sub.time_spent_seconds < updated[sub.team_id].boardTimes[sub.board_id]
+              ) {
+                updated[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
+              }
+            }
+          });
+          return updated;
+        });
+      }
+    });
+  }, []);
 
   // Selected team object
   const selectedTeam: Team | null =
@@ -105,14 +150,14 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Handler: Answer submission for all 5 variables
+  // Handler: Answer submission with automatic Supabase persistence
   const handleSubmitAnswer = (
     userAnswers: Record<string, string>,
     timeSpentSeconds: number
   ) => {
     if (!activeBoard || !selectedTeamId) return;
 
-    // Check each step: all 5 variables must match exactly
+    // Check each step: all variables must match exactly
     const stepResults: Record<string, boolean> = {};
     let allVariablesCorrect = true;
 
@@ -126,10 +171,12 @@ export default function Home() {
       }
     });
 
+    const pointsAwarded = allVariablesCorrect ? activeBoard.points : 0;
+
+    // 1. Audio feedback & local update for instantaneous UX
     if (allVariablesCorrect) {
       playSound.success(isMuted);
 
-      // Update team progress if board not already marked solved
       setTeamProgress((prev) => {
         const teamData = prev[selectedTeamId] || {
           solvedBoards: [],
@@ -144,7 +191,7 @@ export default function Home() {
 
         const newScore = alreadySolved
           ? teamData.totalScore
-          : teamData.totalScore + activeBoard.points;
+          : teamData.totalScore + pointsAwarded;
 
         const newTimes = {
           ...teamData.boardTimes,
@@ -164,7 +211,7 @@ export default function Home() {
       playSound.error(isMuted);
     }
 
-    // Trigger full screen overlay with variable results
+    // 2. Open result overlay
     setOverlayState({
       isOpen: true,
       isCorrect: allVariablesCorrect,
@@ -173,6 +220,27 @@ export default function Home() {
       stepResults,
       timeSpentSeconds,
     });
+
+    // 3. Send submission data to Supabase
+    if (isSupabaseConfigured) {
+      setDbSyncStatus("saving");
+      submitGameResultToSupabase({
+        teamId: selectedTeamId,
+        boardId: activeBoard.id,
+        isCorrect: allVariablesCorrect,
+        userAnswers,
+        stepResults,
+        timeSpentSeconds,
+        pointsAwarded,
+      }).then((res) => {
+        if (res.success) {
+          setDbSyncStatus("saved");
+        } else {
+          setDbSyncStatus("error");
+          console.warn("[Supabase] Pengiriman status:", res.error);
+        }
+      });
+    }
   };
 
   // Handler: Continue from result overlay to next board
@@ -182,6 +250,7 @@ export default function Home() {
     const nextBoard = BOARDS_DATA.find((b) => b.id === currentId + 1);
 
     setOverlayState(null);
+    setDbSyncStatus("idle");
     if (nextBoard) {
       setActiveBoardId(nextBoard.id);
       setCurrentStep("playing");
@@ -194,12 +263,14 @@ export default function Home() {
   // Handler: Retry same board
   const handleRetryBoard = () => {
     setOverlayState(null);
+    setDbSyncStatus("idle");
     playSound.click(isMuted);
   };
 
   // Handler: Return to board list from overlay
   const handleOverlayGoToBoardList = () => {
     setOverlayState(null);
+    setDbSyncStatus("idle");
     playSound.click(isMuted);
     setCurrentStep("board_select");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -223,6 +294,7 @@ export default function Home() {
       setActiveBoardId(null);
       setCurrentStep("team_select");
       setOverlayState(null);
+      setDbSyncStatus("idle");
     }
   };
 
@@ -243,6 +315,18 @@ export default function Home() {
         solvedCount={currentTeamStats.solvedBoards.length}
         totalScore={currentTeamStats.totalScore}
       />
+
+      {/* Database Connection Pill on Top Banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full flex justify-end">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] font-mono text-slate-400">
+          <Database className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Supabase DB:</span>
+          <span className="text-emerald-400 font-bold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Connected
+          </span>
+        </div>
+      </div>
 
       {/* Main SPA Content */}
       <main className="flex-1">
@@ -298,6 +382,14 @@ export default function Home() {
                 <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
+                <div className="truncate">
+                  <div className="text-[11px] text-slate-400">Tim Terpilih:</div>
+                  <div className="text-xs sm:text-sm font-bold text-white truncate">
+                    {selectedTeam
+                      ? selectedTeam.name
+                      : "Belum Ada Tim Yang Dipilih"}
+                  </div>
+                </div>
               </div>
 
               <button
@@ -322,6 +414,12 @@ export default function Home() {
                 <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <Layers className="w-5 h-5" />
                 </div>
+                <div className="truncate">
+                  <div className="text-[11px] text-slate-400">Tim Aktif:</div>
+                  <div className="text-xs sm:text-sm font-bold text-white truncate">
+                    {selectedTeam.name} ({currentTeamStats.solvedBoards.length}/5 Selesai)
+                  </div>
+                </div>
               </div>
 
               <button
@@ -344,6 +442,12 @@ export default function Home() {
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <Flame className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <div className="text-[11px] text-slate-400">Sedang Mengerjakan:</div>
+                  <div className="text-xs sm:text-sm font-bold text-white truncate">
+                    {activeBoard.title} • {selectedTeam.name}
+                  </div>
                 </div>
               </div>
 
@@ -378,7 +482,7 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Full Screen Overlay for Answers */}
+      {/* Full Screen Overlay for Answers with Supabase DB Status */}
       {overlayState && activeBoard && selectedTeam && (
         <ResultOverlay
           isOpen={overlayState.isOpen}
@@ -388,6 +492,7 @@ export default function Home() {
           userAnswers={overlayState.userAnswers}
           stepResults={overlayState.stepResults}
           timeSpentSeconds={overlayState.timeSpentSeconds}
+          dbSyncStatus={dbSyncStatus}
           onContinue={handleContinueNextBoard}
           onRetry={handleRetryBoard}
           onGoToBoardList={handleOverlayGoToBoardList}

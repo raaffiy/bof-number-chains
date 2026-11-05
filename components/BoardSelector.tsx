@@ -130,12 +130,6 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                         <span>Selesai (Benar)</span>
                       </div>
-                      {solvedTime && (
-                        <span className="flex items-center gap-1 text-[11px] font-mono bg-emerald-950/70 px-2 py-0.5 rounded-md text-emerald-200">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(solvedTime)}
-                        </span>
-                      )}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/60 border border-dashed border-slate-700 text-slate-400 text-xs">
