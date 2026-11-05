@@ -1,29 +1,30 @@
 "use client";
 
 import React from "react";
-import { Users, CheckCircle2, ShieldCheck, ArrowRight, Sparkles, Award } from "lucide-react";
+import { Users, CheckCircle2, ShieldCheck, Sparkles, Award } from "lucide-react";
 import { Team, TEAMS_DATA } from "@/lib/game-data";
 
 interface TeamSelectorProps {
   selectedTeamId: string | null;
   onSelectTeam: (teamId: string) => void;
-  onProceedToBoards: () => void;
   teamProgress: Record<string, { solvedBoards: number[]; totalScore: number }>;
 }
 
 export const TeamSelector: React.FC<TeamSelectorProps> = ({
   selectedTeamId,
   onSelectTeam,
-  onProceedToBoards,
   teamProgress,
 }) => {
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn pb-28">
       {/* Header Banner */}
       <div className="text-center max-w-3xl mx-auto mb-10">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Pilih Tim Fakultas Anda
+          Pilih Tim Anda
         </h1>
+        <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
+          pilih salah satu tim delegasi fakultas yang akan berlaga.
+        </p>
       </div>
 
       {/* Grid of Team Cards */}
@@ -37,18 +38,20 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
             <div
               key={team.id}
               onClick={() => onSelectTeam(team.id)}
-              className={`relative group cursor-pointer rounded-2xl p-6 transition-all duration-300 border flex flex-col justify-between ${isSelected
+              className={`relative group cursor-pointer rounded-2xl p-6 transition-all duration-300 border flex flex-col justify-between ${
+                isSelected
                   ? `bg-slate-900/90 border-2 ${team.themeColor.border} shadow-2xl scale-[1.02]`
                   : "bg-slate-900/50 border-slate-800/90 hover:border-slate-700 hover:bg-slate-900/80 hover:scale-[1.01]"
-                }`}
+              }`}
               style={{
                 boxShadow: isSelected ? `0 0 30px ${team.themeColor.glow}` : undefined,
               }}
             >
               {/* Top Accent Ribbon */}
               <div
-                className={`absolute top-0 left-6 right-6 h-1 rounded-b-full bg-gradient-to-r ${team.themeColor.primary} ${isSelected ? "opacity-100" : "opacity-40 group-hover:opacity-75"
-                  } transition-opacity`}
+                className={`absolute top-0 left-6 right-6 h-1 rounded-b-full bg-gradient-to-r ${team.themeColor.primary} ${
+                  isSelected ? "opacity-100" : "opacity-40 group-hover:opacity-75"
+                } transition-opacity`}
               />
 
               <div>
@@ -119,35 +122,6 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
             </div>
           );
         })}
-      </div>
-
-      {/* Action / CTA Bar */}
-      <div className="sticky bottom-4 z-30 max-w-2xl mx-auto bg-slate-900/95 border border-slate-700/80 p-4 rounded-2xl backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400">Tim Terpilih:</div>
-            <div className="text-sm font-bold text-white">
-              {selectedTeamId
-                ? TEAMS_DATA.find((t) => t.id === selectedTeamId)?.name
-                : "Belum Ada Tim Yang Dipilih"}
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={onProceedToBoards}
-          disabled={!selectedTeamId}
-          className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${selectedTeamId
-              ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/40 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 cursor-pointer"
-              : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
-            }`}
-        >
-          <span>Pilih Papan Soal</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

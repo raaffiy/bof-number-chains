@@ -1,20 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Clock,
   Send,
-  HelpCircle,
   Lightbulb,
   Edit3,
   Award,
-  Check,
-  RotateCcw,
   Sparkles,
-  Layers,
-  Flame,
-  Delete,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 import { GameBoard, Team } from "@/lib/game-data";
 
@@ -22,7 +18,10 @@ interface GameBoardArenaProps {
   board: GameBoard;
   team: Team;
   onBackToBoards: () => void;
-  onSubmitAnswer: (userAnswer: string, timeSpentSeconds: number) => void;
+  onSubmitAnswer: (
+    userAnswers: Record<string, string>,
+    timeSpentSeconds: number
+  ) => void;
   isAlreadySolved: boolean;
 }
 
@@ -33,12 +32,18 @@ export const GameBoardArena: React.FC<GameBoardArenaProps> = ({
   onSubmitAnswer,
   isAlreadySolved,
 }) => {
-  const [answerInput, setAnswerInput] = useState<string>("");
+  // State for each of the 5 variables: A, B, C, D, E
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    board.steps.forEach((step) => {
+      initial[step.variable] = "";
+    });
+    return initial;
+  });
+
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [secondsElapsed, setSecondsElapsed] = useState<number>(0);
-  const [showScratchpad, setShowScratchpad] = useState<boolean>(false);
   const [showClue, setShowClue] = useState<boolean>(false);
-  const [scratchNotes, setScratchNotes] = useState<Record<string, string>>({});
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Timer effect
   useEffect(() => {
@@ -49,67 +54,63 @@ export const GameBoardArena: React.FC<GameBoardArenaProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-focus input on mount
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [board.id]);
-
   const formatTimer = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
     return `${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const handleFormSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!answerInput.trim()) return;
-    onSubmitAnswer(answerInput.trim(), secondsElapsed);
-  };
-
-  const handleKeypadPress = (val: string) => {
-    if (val === "BACKSPACE") {
-      setAnswerInput((prev) => prev.slice(0, -1));
-    } else if (val === "CLEAR") {
-      setAnswerInput("");
-    } else if (val === "-") {
-      if (!answerInput.startsWith("-")) {
-        setAnswerInput((prev) => "-" + prev);
-      } else {
-        setAnswerInput((prev) => prev.slice(1));
-      }
-    } else {
-      setAnswerInput((prev) => prev + val);
+  const handleInputChange = (variable: string, value: string) => {
+    setUserAnswers((prev) => ({
+      ...prev,
+      [variable]: value,
+    }));
+    if (validationError) {
+      setValidationError(null);
     }
   };
 
-  const handleScratchChange = (variable: string, val: string) => {
-    setScratchNotes((prev) => ({
-      ...prev,
-      [variable]: val,
-    }));
+  // Count how many variables have been filled
+  const filledCount = board.steps.filter(
+    (step) => (userAnswers[step.variable] || "").trim() !== ""
+  ).length;
+
+  const totalVariables = board.steps.length;
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    // Check if ALL variables are filled
+    const missingVars = board.steps
+      .filter((step) => (userAnswers[step.variable] || "").trim() === "")
+      .map((step) => step.variable);
+
+    if (missingVars.length > 0) {
+      setValidationError(
+        `Seluruh ${totalVariables} variabel harus diisi! Variabel yang belum diisi: ${missingVars.join(
+          ", "
+        )}`
+      );
+      return;
+    }
+
+    setValidationError(null);
+    onSubmitAnswer(userAnswers, secondsElapsed);
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-fadeIn">
-      {/* Top Navigation & Status Bar */}
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-fadeIn pb-24">
+      {/* Top Bar Status */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md mb-6">
         <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToBoards}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Kembali ke Papan</span>
-          </button>
-
-          <div className="h-6 w-px bg-slate-800 hidden sm:block" />
-
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white tracking-wide">{board.title}</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${board.difficultyColor}`}>
+              <span className="text-xs font-bold text-white tracking-wide">
+                {board.title}
+              </span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${board.difficultyColor}`}
+              >
                 {board.difficulty}
               </span>
             </div>
@@ -117,31 +118,28 @@ export const GameBoardArena: React.FC<GameBoardArenaProps> = ({
         </div>
 
         {/* Right Info: Timer & Playing Team */}
-        <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800">
-            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             <span className="text-xs text-slate-400">Tim:</span>
             <span className="text-xs font-bold text-slate-200">{team.name}</span>
           </div>
 
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-400 font-mono font-bold text-sm">
-            <Clock className="w-4 h-4 text-blue-400 animate-pulse" />
-            <span>{formatTimer(secondsElapsed)}</span>
-          </div>
         </div>
       </div>
 
-      {/* Main Chain Challenge Box */}
-      <div className="rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800/90 shadow-2xl p-6 sm:p-8 mb-8 relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
+      {/* Main Challenge Area */}
+      <div className="rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl p-6 sm:p-8 mb-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Selesaikan Rantai Menuju Nilai Variabel [{board.targetVariable}]
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              Hitung dan Isi Nilai Seluruh 5 Variabel (A, B, C, D, E)
             </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Semua variabel dari A hingga E wajib diisi. Jawaban dinyatakan <strong>BENAR</strong> jika kelima variabel tepat, dan <strong>SALAH</strong> jika salah satu variabel keliru.
+            </p>
           </div>
+
         </div>
 
         {/* Optional Clue Banner */}
@@ -149,186 +147,84 @@ export const GameBoardArena: React.FC<GameBoardArenaProps> = ({
           <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm flex items-start gap-3 animate-fadeIn">
             <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="font-bold text-amber-300">Petunjuk Strategi:</strong> {board.clue}
+              <strong className="font-bold text-amber-300">Petunjuk Perhitungan:</strong> {board.clue}
             </div>
           </div>
         )}
 
-        {/* Visual Chain Nodes */}
-        <div className="py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {board.steps.map((step, idx) => {
-              const isTarget = step.variable === board.targetVariable;
+        {/* 5 Variable Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {board.steps.map((step) => {
+            const val = userAnswers[step.variable] || "";
+            const isFilled = val.trim() !== "";
 
-              return (
-                <div
-                  key={step.stepIndex}
-                  className={`relative p-5 rounded-2xl border transition-all ${
-                    isTarget
-                      ? "bg-gradient-to-br from-blue-950/80 via-slate-900 to-indigo-950/80 border-2 border-blue-500 shadow-xl shadow-blue-500/20 scale-[1.02]"
-                      : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
+            return (
+              <div
+                key={step.stepIndex}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${isFilled
+                    ? "bg-slate-950/90 border-blue-500/50 shadow-md shadow-blue-500/10"
+                    : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
                   }`}
-                >
-                  {/* Step Index Pill */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">
-                      Langkah {step.stepIndex}
-                    </span>
+              >
+                <div>
+                  {/* Step Header */}
+                  <div className="flex items-center justify-between mb-2">
 
-                    {isTarget && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-300 border border-blue-400/40 animate-pulse">
-                        🎯 TARGET JAWABAN
+                    {isFilled ? (
+                      <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 font-mono">
+                        <Check className="w-3 h-3" /> Terisi
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-slate-500 font-mono">
+                        Wajib Diisi
                       </span>
                     )}
                   </div>
 
-                  {/* Variable & Formula Display */}
-                  <div className="flex items-baseline gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-mono text-xl font-black text-white shrink-0 shadow-inner">
+                  {/* Formula Display */}
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-mono text-base font-black text-white shrink-0">
                       {step.variable}
                     </div>
-                    <div className="text-xl sm:text-2xl font-black font-mono text-white tracking-wide">
+                    <div className="text-lg font-black font-mono text-white tracking-wide truncate">
                       = {step.formula}
                     </div>
                   </div>
-
-                  {/* Context Explanation */}
-                  <p className="text-xs text-slate-400 mt-2 font-mono leading-relaxed">
-                    {idx === 0
-                      ? "Nilai awal rantai angka"
-                      : `Gunakan hasil variabel sebelumnya untuk menyelesaikan ${step.variable}`}
-                  </p>
-
-                  {/* Scratchpad Quick Note per variable */}
-                  {showScratchpad && (
-                    <div className="mt-3 pt-3 border-t border-slate-800">
-                      <label className="block text-[10px] font-mono text-slate-400 mb-1">
-                        Coretan hasil {step.variable}:
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: 70"
-                        value={scratchNotes[step.variable] || ""}
-                        onChange={(e) => handleScratchChange(step.variable, e.target.value)}
-                        className="w-full text-xs font-mono px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  )}
+                  <br></br>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Global Scratchpad Drawer if expanded */}
-        {showScratchpad && (
-          <div className="mt-6 p-4 rounded-2xl bg-slate-950 border border-slate-800 animate-fadeIn">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-300 mb-2">
-              <Edit3 className="w-4 h-4 text-blue-400" />
-              <span>Papan Coretan Bersama (Scratchpad CoC)</span>
-            </div>
-            <p className="text-xs text-slate-400 mb-3">
-              Catat kalkulasi silang seperti anggota tim di CoC agar tidak ada tanda bagi/tambah yang terlewat.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-              {board.steps.map((st) => (
-                <div key={st.stepIndex} className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                  <div className="text-[10px] text-slate-400 font-mono">{st.variable} =</div>
-                  <div className="text-xs font-mono font-bold text-emerald-400 truncate">
-                    {scratchNotes[st.variable] || "-"}
+                {/* Input for this Variable */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                    Nilai Variabel [{step.variable}]:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      placeholder={`Jawaban ${step.variable}`}
+                      value={val}
+                      onChange={(e) => handleInputChange(step.variable, e.target.value)}
+                      className={`w-full px-3 py-2.5 rounded-xl bg-slate-900 border text-center font-mono font-bold text-lg text-white placeholder:text-slate-600 focus:outline-none transition-all ${isFilled
+                          ? "border-blue-500/80 bg-blue-950/20 text-blue-200"
+                          : "border-slate-700 focus:border-blue-500"
+                        }`}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Answer Submission Center */}
-      <div className="max-w-2xl mx-auto rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-2xl p-6 sm:p-8 backdrop-blur-md">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold tracking-wide uppercase mb-2">
-            <Flame className="w-3.5 h-3.5 text-blue-400" />
-            Final Answer Submission
-          </div>
-          <h3 className="text-2xl font-black text-white">
-            Berapakah Nilai Akhir untuk Variabel [{board.targetVariable}]?
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Masukkan angka bulat hasil perhitungan akhir rantai Number Chains di bawah ini.
-          </p>
+              </div>
+            );
+          })}
         </div>
-
-        <form onSubmit={handleFormSubmit} className="space-y-6">
-          {/* Main Input Field */}
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-              <span className="font-mono text-2xl font-bold text-slate-500">
-                {board.targetVariable} =
-              </span>
-            </div>
-
-            <input
-              ref={inputRef}
-              type="number"
-              value={answerInput}
-              onChange={(e) => setAnswerInput(e.target.value)}
-              placeholder="Ketik jawaban..."
-              className="w-full pl-20 pr-6 py-4 rounded-2xl bg-slate-950 border-2 border-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 text-white font-mono text-3xl font-black placeholder:text-slate-600 transition-all text-center tracking-wider focus:outline-none"
-            />
-          </div>
-
-          {/* Quick On-Screen Touch / Click Keypad */}
-          <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80">
-            <div className="grid grid-cols-4 gap-2">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "-", "0"].map((k) => (
-                <button
-                  type="button"
-                  key={k}
-                  onClick={() => handleKeypadPress(k)}
-                  className="py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-blue-600 active:text-white border border-slate-800 text-slate-200 font-mono font-bold text-lg transition-all cursor-pointer hover:border-slate-700"
-                >
-                  {k}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                onClick={() => handleKeypadPress("BACKSPACE")}
-                className="py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-rose-900 border border-slate-800 text-rose-400 font-mono font-bold text-sm flex items-center justify-center transition-all cursor-pointer"
-                title="Hapus satu angka"
-              >
-                <Delete className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => handleKeypadPress("CLEAR")}
-                className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1 rounded-lg hover:bg-slate-900 transition-colors cursor-pointer"
-              >
-                Reset Kolom Jawaban
-              </button>
-            </div>
-          </div>
-
-          {/* Submit Action Button */}
-          <button
-            type="submit"
-            disabled={!answerInput.trim()}
-            className={`w-full py-4 rounded-2xl font-extrabold text-base flex items-center justify-center gap-3 transition-all cursor-pointer ${
-              answerInput.trim()
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl shadow-blue-600/30 hover:scale-[1.01] active:scale-[0.99]"
-                : "bg-slate-800 text-slate-500 border border-slate-700/80 cursor-not-allowed"
-            }`}
-          >
-            <Send className="w-5 h-5" />
-            <span>SUBMIT JAWABAN (PERIKSA HASIL)</span>
-          </button>
-        </form>
-
       </div>
+
+      {/* Submit Button */}
+      <button
+        onClick={handleSubmit}
+        className="w-full py-4 rounded-2xl font-extrabold text-base flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+      >
+        <Send className="w-5 h-5" />
+        <span>SUBMIT JAWABAN (PERIKSA HASIL)</span>
+      </button>
     </div>
   );
 };

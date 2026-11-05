@@ -7,11 +7,9 @@ import {
   Clock,
   Award,
   ArrowRight,
-  Sparkles,
   Users,
   Play,
   RotateCcw,
-  Flame,
 } from "lucide-react";
 import { GameBoard, Team, BOARDS_DATA } from "@/lib/game-data";
 
@@ -43,28 +41,25 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn">
-      {/* Active Team Identity Banner */}
-      <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Banner Tim Aktif */}
+      <div className="mb-8 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+            <h2 className="text-xl font-bold text-white mt-0.5">
               {selectedTeam.name}
             </h2>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-300 mt-1">
-              <Users className="w-3.5 h-3.5 text-slate-400" />
-              <span>Anggota:</span>
-              <span className="font-medium text-slate-200">
-                {selectedTeam.members.map((m) => m.name).join(" • ")}
-              </span>
+            <div className="flex flex-wrap items-center gap-1 text-xs text-slate-300 mt-0.5">
+              <Users className="w-3.5 h-3.5 text-slate-400 mr-0.5" />
+              <span>{selectedTeam.members.map((m) => m.name).join(" • ")}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-800">
+        <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-800">
           <div className="text-right">
-            <div className="text-xs text-slate-400">Total Progres Tim:</div>
-            <div className="text-lg font-black text-amber-400 flex items-center gap-1 justify-end">
-              <Award className="w-5 h-5 text-amber-400" />
+            <div className="text-xs text-slate-400">Progres Tim:</div>
+            <div className="text-base font-bold text-amber-400 flex items-center gap-1 justify-end">
+              <Award className="w-4 h-4 text-amber-400" />
               <span>{totalPointsEarned} Pts</span>
               <span className="text-xs text-slate-400 font-normal">
                 ({solvedBoardIds.length}/5 Selesai)
@@ -74,33 +69,18 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
         </div>
       </div>
 
-      {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Pilih Papan Soal Number Chains
-          </h2>
-        </div>
-
-        {/* Completion Progress Bar */}
-        <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 min-w-[260px]">
-          <div className="flex justify-between text-xs font-semibold mb-1.5">
-            <span className="text-slate-400">Penyelesaian Papan:</span>
-            <span className="text-emerald-400 font-mono">
-              {Math.round((solvedBoardIds.length / 5) * 100)}% ({solvedBoardIds.length}/5)
-            </span>
-          </div>
-          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all duration-500 rounded-full"
-              style={{ width: `${(solvedBoardIds.length / 5) * 100}%` }}
-            />
-          </div>
-        </div>
+      {/* Header Halaman */}
+      <div className="mb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white">
+          Pilih Papan Soal Number Chains
+        </h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Pilih salah satu papan untuk memulai perhitungan berantai. Seluruh 5 variabel harus dihitung dengan benar.
+        </p>
       </div>
 
-      {/* Grid of 5 Boards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      {/* Grid 5 Papan Soal - Desain Rapih dan Simetris */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
         {BOARDS_DATA.map((board: GameBoard) => {
           const isSolved = solvedBoardIds.includes(board.id);
           const solvedTime = boardTimes[board.id];
@@ -108,84 +88,86 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
           return (
             <div
               key={board.id}
-              className={`rounded-2xl p-6 border transition-all duration-300 flex flex-col justify-between relative overflow-hidden ${
-                isSolved
-                  ? "bg-slate-900/90 border-emerald-500/40 shadow-lg shadow-emerald-500/10"
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90 hover:scale-[1.01]"
-              }`}
-            >
-              {/* Top Accent Line */}
-              <div
-                className={`absolute top-0 left-0 right-0 h-1.5 ${
-                  isSolved
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-400"
-                    : board.id === 5
-                    ? "bg-gradient-to-r from-rose-500 to-amber-500"
-                    : "bg-gradient-to-r from-blue-600 to-indigo-500"
+              className={`group relative overflow-hidden rounded-2xl border p-5 flex flex-col justify-between
+                transition-all duration-300 hover:-translate-y-1 motion-reduce:transform-none ${isSolved
+                  ? "bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-900 border-emerald-500/40 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20"
+                  : "bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-slate-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10"
                 }`}
+            >
+              {/* Garis aksen di atas kartu: hijau jika selesai, biru jika belum */}
+              <div
+                className={`absolute inset-x-0 top-0 h-1 ${isSolved
+                    ? "bg-gradient-to-r from-emerald-400 to-teal-400"
+                    : "bg-gradient-to-r from-blue-500 to-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity"
+                  }`}
               />
 
-              <div>
-                {/* Header Badge Row */}
-                <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="relative">
+                {/* Baris atas: kesulitan & poin */}
+                <div className="flex items-center justify-between gap-2 mb-4">
                   <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${board.difficultyColor}`}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${board.difficultyColor}`}
                   >
                     {board.difficulty}
                   </span>
 
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 to-orange-500/10 px-3 py-1 rounded-full border border-amber-500/30">
                     <Award className="w-3.5 h-3.5" />
                     <span>+{board.points} Pts</span>
                   </div>
                 </div>
 
-                {/* Title */}
-                <h3 className="text-lg font-bold text-white mb-1">{board.title}</h3>
+                {/* Judul */}
+                <h3 className="text-lg font-bold text-white mb-4 leading-snug">
+                  {board.title}
+                </h3>
 
-                {/* Status Indicator Pill */}
-                <div className="mb-4">
+                {/* Status */}
+                <div className="mb-5">
                   {isSolved ? (
-                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+                      <div className="flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>SELESAI (BENAR)</span>
+                        <span>Selesai (Benar)</span>
                       </div>
                       {solvedTime && (
-                        <span className="text-[11px] font-mono font-medium text-emerald-300">
-                          ⏱ {formatTime(solvedTime)}
+                        <span className="flex items-center gap-1 text-[11px] font-mono bg-emerald-950/70 px-2 py-0.5 rounded-md text-emerald-200">
+                          <Clock className="w-3 h-3" />
+                          {formatTime(solvedTime)}
                         </span>
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs font-medium">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-                      <span>BELUM DIKERJAKAN</span>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/60 border border-dashed border-slate-700 text-slate-400 text-xs">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400/60 opacity-75 animate-ping motion-reduce:animate-none" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400" />
+                      </span>
+                      <span>Belum dikerjakan</span>
                     </div>
                   )}
                 </div>
-
               </div>
 
-              {/* Action Button */}
+              {/* Tombol aksi */}
               <button
                 onClick={() => onSelectBoard(board.id)}
-                className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  isSolved
-                    ? "bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40"
-                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98]"
-                }`}
+                className={`relative w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${isSolved
+                    ? "bg-slate-800/80 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 focus-visible:ring-emerald-400"
+                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/30 focus-visible:ring-blue-400"
+                  }`}
               >
                 {isSolved ? (
                   <>
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Kerjakan Ulang Papan Ini</span>
+                    <RotateCcw className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-rotate-180 motion-reduce:transform-none" />
+                    <span>Kerjakan Ulang</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4 fill-white" />
+                    <Play className="w-3.5 h-3.5 fill-white" />
                     <span>Mulai Kerjakan Papan</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1 motion-reduce:transform-none" />
                   </>
                 )}
               </button>

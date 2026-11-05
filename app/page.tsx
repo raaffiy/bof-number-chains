@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TeamSelector } from "@/components/TeamSelector";
 import { BoardSelector } from "@/components/BoardSelector";
@@ -9,11 +9,20 @@ import { ResultOverlay } from "@/components/ResultOverlay";
 import { LeaderboardModal } from "@/components/LeaderboardModal";
 import { TEAMS_DATA, BOARDS_DATA, Team, GameBoard } from "@/lib/game-data";
 import { playSound } from "@/lib/sound";
-import { Trophy, Info, Sparkles, HelpCircle } from "lucide-react";
+import {
+  Trophy,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  Layers,
+  Flame,
+} from "lucide-react";
 
 export default function Home() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<"team_select" | "board_select" | "playing">("team_select");
+  const [currentStep, setCurrentStep] = useState<
+    "team_select" | "board_select" | "playing"
+  >("team_select");
   const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
@@ -29,7 +38,6 @@ export default function Home() {
       }
     >
   >(() => {
-    // Initial dummy data with some friendly starting status or clean empty slate
     const initial: Record<
       string,
       {
@@ -48,12 +56,13 @@ export default function Home() {
     return initial;
   });
 
-  // Result overlay state
+  // Result overlay state with 5-variable verification
   const [overlayState, setOverlayState] = useState<{
     isOpen: boolean;
     isCorrect: boolean;
     boardId: number;
-    submittedValue: string;
+    userAnswers: Record<string, string>;
+    stepResults: Record<string, boolean>;
     timeSpentSeconds: number;
   } | null>(null);
 
@@ -67,7 +76,11 @@ export default function Home() {
 
   // Current team stats
   const currentTeamStats = selectedTeamId
-    ? teamProgress[selectedTeamId] || { solvedBoards: [], totalScore: 0, boardTimes: {} }
+    ? teamProgress[selectedTeamId] || {
+        solvedBoards: [],
+        totalScore: 0,
+        boardTimes: {},
+      }
     : { solvedBoards: [], totalScore: 0, boardTimes: {} };
 
   // Handler: Select team
@@ -92,17 +105,31 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Handler: Answer submission
-  const handleSubmitAnswer = (userAnswer: string, timeSpentSeconds: number) => {
+  // Handler: Answer submission for all 5 variables
+  const handleSubmitAnswer = (
+    userAnswers: Record<string, string>,
+    timeSpentSeconds: number
+  ) => {
     if (!activeBoard || !selectedTeamId) return;
 
-    const parsedUserAnswer = parseInt(userAnswer, 10);
-    const isCorrect = parsedUserAnswer === activeBoard.correctAnswer;
+    // Check each step: all 5 variables must match exactly
+    const stepResults: Record<string, boolean> = {};
+    let allVariablesCorrect = true;
 
-    if (isCorrect) {
+    activeBoard.steps.forEach((step) => {
+      const parsedVal = parseInt((userAnswers[step.variable] || "").trim(), 10);
+      const isStepCorrect = parsedVal === step.result;
+      stepResults[step.variable] = isStepCorrect;
+
+      if (!isStepCorrect) {
+        allVariablesCorrect = false;
+      }
+    });
+
+    if (allVariablesCorrect) {
       playSound.success(isMuted);
 
-      // Update team progress if not already recorded
+      // Update team progress if board not already marked solved
       setTeamProgress((prev) => {
         const teamData = prev[selectedTeamId] || {
           solvedBoards: [],
@@ -137,17 +164,18 @@ export default function Home() {
       playSound.error(isMuted);
     }
 
-    // Trigger full screen overlay
+    // Trigger full screen overlay with variable results
     setOverlayState({
       isOpen: true,
-      isCorrect,
+      isCorrect: allVariablesCorrect,
       boardId: activeBoard.id,
-      submittedValue: userAnswer,
+      userAnswers,
+      stepResults,
       timeSpentSeconds,
     });
   };
 
-  // Handler: Continue from result overlay (e.g. to next board)
+  // Handler: Continue from result overlay to next board
   const handleContinueNextBoard = () => {
     if (!overlayState) return;
     const currentId = overlayState.boardId;
@@ -179,7 +207,9 @@ export default function Home() {
 
   // Handler: Reset all progress
   const handleResetAll = () => {
-    if (window.confirm("Apakah Anda yakin ingin me-reset seluruh progres permainan?")) {
+    if (
+      window.confirm("Apakah Anda yakin ingin me-reset seluruh progres permainan?")
+    ) {
       const resetData: typeof teamProgress = {};
       TEAMS_DATA.forEach((t) => {
         resetData[t.id] = {
@@ -214,14 +244,13 @@ export default function Home() {
         totalScore={currentTeamStats.totalScore}
       />
 
-      {/* Main Single Page Content Area */}
-      <main className="flex-1 pb-16">
+      {/* Main SPA Content */}
+      <main className="flex-1">
         {/* Step 1: Team Selection */}
         {currentStep === "team_select" && (
           <TeamSelector
             selectedTeamId={selectedTeamId}
             onSelectTeam={handleSelectTeam}
-            onProceedToBoards={handleProceedToBoards}
             teamProgress={teamProgress}
           />
         )}
@@ -252,22 +281,100 @@ export default function Home() {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             onSubmitAnswer={handleSubmitAnswer}
-            isAlreadySolved={currentTeamStats.solvedBoards.includes(activeBoard.id)}
+            isAlreadySolved={currentTeamStats.solvedBoards.includes(
+              activeBoard.id
+            )}
           />
         )}
       </main>
 
+      {/* Persistent Bottom Action / CTA Bar across all steps */}
+      <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-2xl w-full mx-auto">
+        <div className="bg-slate-900/95 border border-slate-700/80 p-3.5 sm:p-4 rounded-2xl backdrop-blur-xl shadow-2xl flex flex-row items-center justify-between gap-3">
+          {/* Kondisi 1: Step Pilih Tim */}
+          {currentStep === "team_select" && (
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+              </div>
+
+              <button
+                onClick={handleProceedToBoards}
+                disabled={!selectedTeamId}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
+                  selectedTeamId
+                    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95"
+                    : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                }`}
+              >
+                <span>Pilih Papan Soal</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          {/* Kondisi 2: Step Papan Soal */}
+          {currentStep === "board_select" && selectedTeam && (
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  playSound.click(isMuted);
+                  setCurrentStep("team_select");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Kembali</span>
+              </button>
+            </>
+          )}
+
+          {/* Kondisi 3: Step Pengerjaan Soal */}
+          {currentStep === "playing" && activeBoard && selectedTeam && (
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                  <Flame className="w-5 h-5" />
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  playSound.click(isMuted);
+                  setCurrentStep("board_select");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Kembali</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Floating Action Button for Faculty Leaderboard */}
-      <div className="fixed bottom-6 right-6 z-30">
+      <div className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-30">
         <button
           onClick={() => {
             playSound.click(isMuted);
             setShowLeaderboard(true);
           }}
-          className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-xl shadow-amber-500/25 border border-amber-300/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 border border-amber-300/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
-          <Trophy className="w-5 h-5 fill-slate-950" />
-          <span>Leaderboard Fakultas</span>
+          <Trophy className="w-4 h-4 fill-slate-950" />
+          <span className="hidden sm:inline">Leaderboard Fakultas</span>
+          <span className="sm:hidden">Leaderboard</span>
         </button>
       </div>
 
@@ -278,7 +385,8 @@ export default function Home() {
           isCorrect={overlayState.isCorrect}
           board={activeBoard}
           team={selectedTeam}
-          submittedValue={overlayState.submittedValue}
+          userAnswers={overlayState.userAnswers}
+          stepResults={overlayState.stepResults}
           timeSpentSeconds={overlayState.timeSpentSeconds}
           onContinue={handleContinueNextBoard}
           onRetry={handleRetryBoard}

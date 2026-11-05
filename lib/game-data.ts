@@ -37,7 +37,7 @@ export interface GameBoard {
 
 export const TEAMS_DATA: Team[] = [
   {
-    id: "Kelompok 1",
+    id: "ft",
     name: "Fakultas Teknik",
     themeColor: {
       primary: "from-blue-600 to-indigo-600",
@@ -54,7 +54,7 @@ export const TEAMS_DATA: Team[] = [
     ],
   },
   {
-    id: "Kelompok 2",
+    id: "fasilkom",
     name: "Fakultas Ilmu Komputer",
     themeColor: {
       primary: "from-cyan-500 to-teal-600",
@@ -71,7 +71,7 @@ export const TEAMS_DATA: Team[] = [
     ],
   },
   {
-    id: "Kelompok 3",
+    id: "fk",
     name: "Fakultas Kedokteran",
     themeColor: {
       primary: "from-emerald-500 to-green-600",
@@ -88,7 +88,7 @@ export const TEAMS_DATA: Team[] = [
     ],
   },
   {
-    id: "Kelompok 4",
+    id: "fmipa",
     name: "Fakultas MIPA",
     themeColor: {
       primary: "from-purple-600 to-pink-600",
@@ -105,7 +105,7 @@ export const TEAMS_DATA: Team[] = [
     ],
   },
   {
-    id: "Kelompok 5",
+    id: "feb",
     name: "Fakultas Ekonomi & Bisnis",
     themeColor: {
       primary: "from-amber-500 to-orange-600",
@@ -271,7 +271,7 @@ export const BOARDS_DATA: GameBoard[] = [
     difficulty: "Sangat Sulit",
     difficultyColor: "text-orange-400 bg-orange-500/10 border-orange-500/30",
     points: 400,
-    targetVariable: "F",
+    targetVariable: "E",
     steps: [
       {
         stepIndex: 1,
@@ -308,16 +308,9 @@ export const BOARDS_DATA: GameBoard[] = [
         explanation: "E = (√25 × 18) - 15 = (5 × 18) - 15 = 90 - 15 = 75",
         result: 75,
       },
-      {
-        stepIndex: 6,
-        variable: "F",
-        formula: "(E + 25) ÷ 5 × 3",
-        explanation: "F = ((75 + 25) ÷ 5) × 3 = (100 ÷ 5) × 3 = 20 × 3 = 60",
-        result: 60,
-      },
     ],
-    correctAnswer: 60,
-    clue: "Perhatikan tanda kurung pada rumus F: (E + 25) dibagi 5 terlebih dahulu sebelum dikali 3.",
+    correctAnswer: 75,
+    clue: "Perhatikan tanda kurung pada rumus D: (C × 4 - 40) dihitung terlebih dahulu sebelum dibagi 8.",
   },
   {
     id: 5,
@@ -325,7 +318,7 @@ export const BOARDS_DATA: GameBoard[] = [
     difficulty: "Master",
     difficultyColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
     points: 500,
-    targetVariable: "G",
+    targetVariable: "E",
     steps: [
       {
         stepIndex: 1,
@@ -358,26 +351,12 @@ export const BOARDS_DATA: GameBoard[] = [
       {
         stepIndex: 5,
         variable: "E",
-        formula: "D ÷ 8 × 7",
-        explanation: "E = (200 ÷ 8) × 7 = 25 × 7 = 175",
-        result: 175,
-      },
-      {
-        stepIndex: 6,
-        variable: "F",
-        formula: "(E + 25) ÷ 20",
-        explanation: "F = (175 + 25) ÷ 20 = 200 ÷ 20 = 10",
-        result: 10,
-      },
-      {
-        stepIndex: 7,
-        variable: "G",
-        formula: "F³ ÷ 8 + 19",
-        explanation: "G = (10³ ÷ 8) + 19 = (1000 ÷ 8) + 19 = 125 + 19 = 144",
+        formula: "(D ÷ 8) × 7 - 31",
+        explanation: "E = ((200 ÷ 8) × 7) - 31 = (25 × 7) - 31 = 175 - 31 = 144",
         result: 144,
       },
     ],
     correctAnswer: 144,
-    clue: "10³ = 1000. 1000 dibagi 8 adalah 125.",
+    clue: "200 dibagi 8 adalah 25. 25 dikali 7 adalah 175.",
   },
 ];
