@@ -10,8 +10,6 @@ export interface Team {
   };
   members: {
     name: string;
-    role: string;
-    avatarInitials: string;
   }[];
 }
 
@@ -47,10 +45,10 @@ export const TEAMS_DATA: Team[] = [
       badge: "bg-blue-500/20 text-blue-300 border-blue-500/30",
     },
     members: [
-      { name: "Sandy Kristian", role: "Team Captain / Mental Math", avatarInitials: "SK" },
-      { name: "Axel Giovanni", role: "Logic & Formulas", avatarInitials: "AG" },
-      { name: "Hanif Pratama", role: "Cross-checker", avatarInitials: "HP" },
-      { name: "Yesaya Kevin", role: "Speed Calculator", avatarInitials: "YK" },
+      { name: "Sandy Kristian"},
+      { name: "Axel Giovanni"},
+      { name: "Hanif Pratama"},
+      { name: "Yesaya Kevin"},
     ],
   },
   {
@@ -64,10 +62,10 @@ export const TEAMS_DATA: Team[] = [
       badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
     },
     members: [
-      { name: "Maxwell Salvador", role: "Lead Strategist", avatarInitials: "MS" },
-      { name: "Shakira Amirah", role: "Pattern Analyzer", avatarInitials: "SA" },
-      { name: "Kevin Lius", role: "Fast Arithmetic", avatarInitials: "KL" },
-      { name: "Xaviera Putri", role: "Mental Verifier", avatarInitials: "XP" },
+      { name: "Maxwell Salvador"},
+      { name: "Shakira Amirah"},
+      { name: "Kevin Lius"},
+      { name: "Xaviera Putri"},
     ],
   },
   {
@@ -81,10 +79,10 @@ export const TEAMS_DATA: Team[] = [
       badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     },
     members: [
-      { name: "Jessica Margaretha", role: "Team Lead", avatarInitials: "JM" },
-      { name: "Naufal Hafizh", role: "Number Cruncher", avatarInitials: "NH" },
-      { name: "Sarah Firdaus", role: "Equation Solver", avatarInitials: "SF" },
-      { name: "Kenji Wibawa", role: "Time Keeper", avatarInitials: "KW" },
+      { name: "Jessica Margaretha"},
+      { name: "Naufal Hafizh"},
+      { name: "Sarah Firdaus"},
+      { name: "Kenji Wibawa"},
     ],
   },
   {
@@ -98,10 +96,10 @@ export const TEAMS_DATA: Team[] = [
       badge: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     },
     members: [
-      { name: "Kiana Almira", role: "Pure Math Specialist", avatarInitials: "KA" },
-      { name: "Gregorius Aldo", role: "Radical & Power Master", avatarInitials: "GA" },
-      { name: "Christopher Chen", role: "Algebraic Ninja", avatarInitials: "CC" },
-      { name: "Amanda Clarissa", role: "Accuracy Inspector", avatarInitials: "AC" },
+      { name: "Kiana Almira"},
+      { name: "Gregorius Aldo"},
+      { name: "Christopher Chen"},
+      { name: "Amanda Clarissa"},
     ],
   },
   {
@@ -115,10 +113,10 @@ export const TEAMS_DATA: Team[] = [
       badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     },
     members: [
-      { name: "Davin Alamsyah", role: "Team Captain", avatarInitials: "DA" },
-      { name: "Lyora Wijaya", role: "Financial Modeling Mind", avatarInitials: "LW" },
-      { name: "Edward Santoso", role: "Rapid Calculator", avatarInitials: "ES" },
-      { name: "Fathan Mahendra", role: "Verifier & Support", avatarInitials: "FM" },
+      { name: "Davin Alamsyah"},
+      { name: "Lyora Wijaya"},
+      { name: "Edward Santoso"},
+      { name: "Fathan Mahendra"},
     ],
   },
 ];

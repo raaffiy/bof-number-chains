@@ -90,12 +90,8 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                         className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/40 border border-slate-800/60"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-700/80 text-[10px] font-bold text-slate-200 flex items-center justify-center border border-slate-600">
-                            {member.avatarInitials}
-                          </span>
                           <span className="font-medium text-slate-200">{member.name}</span>
                         </div>
-                        <span className="text-[11px] text-slate-400 font-normal">{member.role}</span>
                       </div>
                     ))}
                   </div>
