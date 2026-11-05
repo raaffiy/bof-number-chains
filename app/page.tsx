@@ -1,69 +1,299 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Navbar } from "@/components/Navbar";
+import { TeamSelector } from "@/components/TeamSelector";
+import { BoardSelector } from "@/components/BoardSelector";
+import { GameBoardArena } from "@/components/GameBoardArena";
+import { ResultOverlay } from "@/components/ResultOverlay";
+import { LeaderboardModal } from "@/components/LeaderboardModal";
+import { TEAMS_DATA, BOARDS_DATA, Team, GameBoard } from "@/lib/game-data";
+import { playSound } from "@/lib/sound";
+import { Trophy, Info, Sparkles, HelpCircle } from "lucide-react";
 
 export default function Home() {
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<"team_select" | "board_select" | "playing">("team_select");
+  const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+
+  // Per-team progress tracker
+  const [teamProgress, setTeamProgress] = useState<
+    Record<
+      string,
+      {
+        solvedBoards: number[];
+        totalScore: number;
+        boardTimes: Record<number, number>;
+      }
+    >
+  >(() => {
+    // Initial dummy data with some friendly starting status or clean empty slate
+    const initial: Record<
+      string,
+      {
+        solvedBoards: number[];
+        totalScore: number;
+        boardTimes: Record<number, number>;
+      }
+    > = {};
+    TEAMS_DATA.forEach((t) => {
+      initial[t.id] = {
+        solvedBoards: [],
+        totalScore: 0,
+        boardTimes: {},
+      };
+    });
+    return initial;
+  });
+
+  // Result overlay state
+  const [overlayState, setOverlayState] = useState<{
+    isOpen: boolean;
+    isCorrect: boolean;
+    boardId: number;
+    submittedValue: string;
+    timeSpentSeconds: number;
+  } | null>(null);
+
+  // Selected team object
+  const selectedTeam: Team | null =
+    TEAMS_DATA.find((t) => t.id === selectedTeamId) || null;
+
+  // Active board object
+  const activeBoard: GameBoard | null =
+    BOARDS_DATA.find((b) => b.id === activeBoardId) || null;
+
+  // Current team stats
+  const currentTeamStats = selectedTeamId
+    ? teamProgress[selectedTeamId] || { solvedBoards: [], totalScore: 0, boardTimes: {} }
+    : { solvedBoards: [], totalScore: 0, boardTimes: {} };
+
+  // Handler: Select team
+  const handleSelectTeam = (teamId: string) => {
+    setSelectedTeamId(teamId);
+    playSound.select(isMuted);
+  };
+
+  // Handler: Proceed to board list
+  const handleProceedToBoards = () => {
+    if (!selectedTeamId) return;
+    playSound.click(isMuted);
+    setCurrentStep("board_select");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Handler: Select specific board
+  const handleSelectBoard = (boardId: number) => {
+    setActiveBoardId(boardId);
+    playSound.click(isMuted);
+    setCurrentStep("playing");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Handler: Answer submission
+  const handleSubmitAnswer = (userAnswer: string, timeSpentSeconds: number) => {
+    if (!activeBoard || !selectedTeamId) return;
+
+    const parsedUserAnswer = parseInt(userAnswer, 10);
+    const isCorrect = parsedUserAnswer === activeBoard.correctAnswer;
+
+    if (isCorrect) {
+      playSound.success(isMuted);
+
+      // Update team progress if not already recorded
+      setTeamProgress((prev) => {
+        const teamData = prev[selectedTeamId] || {
+          solvedBoards: [],
+          totalScore: 0,
+          boardTimes: {},
+        };
+
+        const alreadySolved = teamData.solvedBoards.includes(activeBoard.id);
+        const newSolved = alreadySolved
+          ? teamData.solvedBoards
+          : [...teamData.solvedBoards, activeBoard.id];
+
+        const newScore = alreadySolved
+          ? teamData.totalScore
+          : teamData.totalScore + activeBoard.points;
+
+        const newTimes = {
+          ...teamData.boardTimes,
+          [activeBoard.id]: timeSpentSeconds,
+        };
+
+        return {
+          ...prev,
+          [selectedTeamId]: {
+            solvedBoards: newSolved,
+            totalScore: newScore,
+            boardTimes: newTimes,
+          },
+        };
+      });
+    } else {
+      playSound.error(isMuted);
+    }
+
+    // Trigger full screen overlay
+    setOverlayState({
+      isOpen: true,
+      isCorrect,
+      boardId: activeBoard.id,
+      submittedValue: userAnswer,
+      timeSpentSeconds,
+    });
+  };
+
+  // Handler: Continue from result overlay (e.g. to next board)
+  const handleContinueNextBoard = () => {
+    if (!overlayState) return;
+    const currentId = overlayState.boardId;
+    const nextBoard = BOARDS_DATA.find((b) => b.id === currentId + 1);
+
+    setOverlayState(null);
+    if (nextBoard) {
+      setActiveBoardId(nextBoard.id);
+      setCurrentStep("playing");
+    } else {
+      setCurrentStep("board_select");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Handler: Retry same board
+  const handleRetryBoard = () => {
+    setOverlayState(null);
+    playSound.click(isMuted);
+  };
+
+  // Handler: Return to board list from overlay
+  const handleOverlayGoToBoardList = () => {
+    setOverlayState(null);
+    playSound.click(isMuted);
+    setCurrentStep("board_select");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Handler: Reset all progress
+  const handleResetAll = () => {
+    if (window.confirm("Apakah Anda yakin ingin me-reset seluruh progres permainan?")) {
+      const resetData: typeof teamProgress = {};
+      TEAMS_DATA.forEach((t) => {
+        resetData[t.id] = {
+          solvedBoards: [],
+          totalScore: 0,
+          boardTimes: {},
+        };
+      });
+      setTeamProgress(resetData);
+      setSelectedTeamId(null);
+      setActiveBoardId(null);
+      setCurrentStep("team_select");
+      setOverlayState(null);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen flex flex-col bg-[#070b14] bg-grid-pattern text-slate-100 relative selection:bg-blue-600 selection:text-white">
+      {/* Navigation Bar */}
+      <Navbar
+        currentStep={currentStep}
+        selectedTeam={selectedTeam}
+        onStepChange={(step) => {
+          playSound.click(isMuted);
+          setCurrentStep(step);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        isMuted={isMuted}
+        onToggleMute={() => setIsMuted(!isMuted)}
+        onResetAll={handleResetAll}
+        solvedCount={currentTeamStats.solvedBoards.length}
+        totalScore={currentTeamStats.totalScore}
+      />
+
+      {/* Main Single Page Content Area */}
+      <main className="flex-1 pb-16">
+        {/* Step 1: Team Selection */}
+        {currentStep === "team_select" && (
+          <TeamSelector
+            selectedTeamId={selectedTeamId}
+            onSelectTeam={handleSelectTeam}
+            onProceedToBoards={handleProceedToBoards}
+            teamProgress={teamProgress}
+          />
+        )}
+
+        {/* Step 2: Board Selection */}
+        {currentStep === "board_select" && selectedTeam && (
+          <BoardSelector
+            selectedTeam={selectedTeam}
+            onSelectBoard={handleSelectBoard}
+            onBackToTeams={() => {
+              playSound.click(isMuted);
+              setCurrentStep("team_select");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            solvedBoardIds={currentTeamStats.solvedBoards}
+            boardTimes={currentTeamStats.boardTimes}
+          />
+        )}
+
+        {/* Step 3: Game Board Arena */}
+        {currentStep === "playing" && activeBoard && selectedTeam && (
+          <GameBoardArena
+            board={activeBoard}
+            team={selectedTeam}
+            onBackToBoards={() => {
+              playSound.click(isMuted);
+              setCurrentStep("board_select");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onSubmitAnswer={handleSubmitAnswer}
+            isAlreadySolved={currentTeamStats.solvedBoards.includes(activeBoard.id)}
+          />
+        )}
       </main>
+
+      {/* Floating Action Button for Faculty Leaderboard */}
+      <div className="fixed bottom-6 right-6 z-30">
+        <button
+          onClick={() => {
+            playSound.click(isMuted);
+            setShowLeaderboard(true);
+          }}
+          className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-xl shadow-amber-500/25 border border-amber-300/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+        >
+          <Trophy className="w-5 h-5 fill-slate-950" />
+          <span>Leaderboard Fakultas</span>
+        </button>
+      </div>
+
+      {/* Full Screen Overlay for Answers */}
+      {overlayState && activeBoard && selectedTeam && (
+        <ResultOverlay
+          isOpen={overlayState.isOpen}
+          isCorrect={overlayState.isCorrect}
+          board={activeBoard}
+          team={selectedTeam}
+          submittedValue={overlayState.submittedValue}
+          timeSpentSeconds={overlayState.timeSpentSeconds}
+          onContinue={handleContinueNextBoard}
+          onRetry={handleRetryBoard}
+          onGoToBoardList={handleOverlayGoToBoardList}
+          hasNextBoard={overlayState.boardId < 5}
+        />
+      )}
+
+      {/* Faculty Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        teamProgress={teamProgress}
+        selectedTeamId={selectedTeamId}
+      />
     </div>
   );
 }
