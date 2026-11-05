@@ -30,7 +30,6 @@ export interface GameBoard {
   targetVariable: string;
   steps: BoardStep[];
   correctAnswer: number;
-  clue?: string;
 }
 
 export const TEAMS_DATA: Team[] = [
@@ -167,7 +166,6 @@ export const BOARDS_DATA: GameBoard[] = [
       },
     ],
     correctAnswer: 48,
-    clue: "Perhatikan nilai C kuadrat sebelum dibagi oleh 30.",
   },
   {
     id: 2,
@@ -214,7 +212,6 @@ export const BOARDS_DATA: GameBoard[] = [
       },
     ],
     correctAnswer: 28,
-    clue: "Nilai √144 adalah 12. Tambahkan setelah menghitung D ÷ 5.",
   },
   {
     id: 3,
@@ -261,7 +258,6 @@ export const BOARDS_DATA: GameBoard[] = [
       },
     ],
     correctAnswer: 42,
-    clue: "√169 adalah 13. Cek kembali perhitungan C = 13 × 6 - 8.",
   },
   {
     id: 4,
@@ -308,7 +304,6 @@ export const BOARDS_DATA: GameBoard[] = [
       },
     ],
     correctAnswer: 75,
-    clue: "Perhatikan tanda kurung pada rumus D: (C × 4 - 40) dihitung terlebih dahulu sebelum dibagi 8.",
   },
   {
     id: 5,
@@ -355,6 +350,5 @@ export const BOARDS_DATA: GameBoard[] = [
       },
     ],
     correctAnswer: 144,
-    clue: "200 dibagi 8 adalah 25. 25 dikali 7 adalah 175.",
   },
 ];
