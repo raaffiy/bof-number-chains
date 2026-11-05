@@ -316,18 +316,6 @@ export default function Home() {
         totalScore={currentTeamStats.totalScore}
       />
 
-      {/* Database Connection Pill on Top Banner */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full flex justify-end">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] font-mono text-slate-400">
-          <Database className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Supabase DB:</span>
-          <span className="text-emerald-400 font-bold flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Connected
-          </span>
-        </div>
-      </div>
-
       {/* Main SPA Content */}
       <main className="flex-1">
         {/* Step 1: Team Selection */}

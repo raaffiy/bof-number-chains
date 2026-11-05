@@ -93,7 +93,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <th className="py-3 px-3 font-semibold">Rank</th>
                 <th className="py-3 px-4 font-semibold">Fakultas</th>
                 <th className="py-3 px-3 font-semibold text-center">Papan Selesai</th>
-                <th className="py-3 px-3 font-semibold text-right">Waktu</th>
                 <th className="py-3 px-4 font-semibold text-right">Total Skor</th>
               </tr>
             </thead>
@@ -145,10 +144,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <span className="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 font-bold">
                         {item.solvedCount} / 5
                       </span>
-                    </td>
-
-                    <td className="py-3 px-3 text-right text-slate-400">
-                      {formatTotalTime(item.totalTime)}
                     </td>
 
                     <td className="py-3 px-4 text-right">

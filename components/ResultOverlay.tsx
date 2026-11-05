@@ -167,24 +167,6 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           </div>
         </div>
 
-        {/* Database Status Indicator */}
-        {dbSyncStatus !== "idle" && (
-          <div className="mb-5 flex items-center justify-center gap-2 text-xs font-mono">
-            {dbSyncStatus === "saving" && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                <span>Menyimpan ke Supabase...</span>
-              </span>
-            )}
-            {dbSyncStatus === "saved" && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Check className="w-3.5 h-3.5" />
-                <span>Tersimpan di Supabase</span>
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           {isCorrect ? (
