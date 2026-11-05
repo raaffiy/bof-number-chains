@@ -75,7 +75,7 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
           Pilih Papan Soal Number Chains
         </h2>
         <p className="text-slate-400 text-sm mt-1">
-          Pilih salah satu papan untuk memulai perhitungan berantai. Seluruh 5 variabel harus dihitung dengan benar.
+          Pilih salah satu papan untuk memulai perhitungan berantai. Seluruh variabel pada papan harus dihitung dengan benar.
         </p>
       </div>
 

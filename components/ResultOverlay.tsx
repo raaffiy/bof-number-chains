@@ -124,14 +124,14 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
           >
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-4 h-4" />
-              <span>Hasil Pemeriksaan 5 Variabel:</span>
+              <span>Hasil Pemeriksaan {totalCount} Variabel:</span>
             </span>
             <span>
               {correctCount} / {totalCount} Benar
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {board.steps.map((step) => {
               const isVarCorrect = !!stepResults[step.variable];
               const submitted = userAnswers[step.variable] || "-";
@@ -139,7 +139,7 @@ export const ResultOverlay: React.FC<ResultOverlayProps> = ({
               return (
                 <div
                   key={step.variable}
-                  className={`p-2.5 rounded-xl border flex flex-col justify-between items-center text-center ${
+                  className={`flex-1 min-w-[75px] max-w-[120px] p-2.5 rounded-xl border flex flex-col justify-between items-center text-center ${
                     isVarCorrect
                       ? "bg-emerald-950/50 border-emerald-500/40 text-emerald-300"
                       : "bg-rose-950/50 border-rose-500/50 text-rose-300"

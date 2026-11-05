@@ -1,6 +1,9 @@
 export interface Team {
   id: string;
   name: string;
+  shortCode?: string;
+  alias?: string;
+  motto?: string;
   themeColor: {
     primary: string;
     border: string;
@@ -10,6 +13,8 @@ export interface Team {
   };
   members: {
     name: string;
+    role?: string;
+    avatarInitials?: string;
   }[];
 }
 
@@ -24,12 +29,16 @@ export interface BoardStep {
 export interface GameBoard {
   id: number;
   title: string;
+  subtitle?: string;
   difficulty: "Mudah" | "Sedang" | "Sulit" | "Sangat Sulit" | "Master";
   difficultyColor: string;
   points: number;
   targetVariable: string;
+  estimatedTime?: string;
+  contextNote?: string;
   steps: BoardStep[];
   correctAnswer: number;
+  clue?: string;
 }
 
 export const TEAMS_DATA: Team[] = [
@@ -262,10 +271,13 @@ export const BOARDS_DATA: GameBoard[] = [
   {
     id: 4,
     title: "Papan 04: Nested Logic Chain",
+    subtitle: "Rantai Aljabar & Tanda Kurung Kompleks",
     difficulty: "Sangat Sulit",
     difficultyColor: "text-orange-400 bg-orange-500/10 border-orange-500/30",
     points: 400,
-    targetVariable: "E",
+    targetVariable: "F",
+    estimatedTime: "5-6 Menit",
+    contextNote: "6 langkah berturut-turut dari A hingga F dengan pembagian aljabar, kuadrat, dan akar kuadrat.",
     steps: [
       {
         stepIndex: 1,
@@ -302,16 +314,27 @@ export const BOARDS_DATA: GameBoard[] = [
         explanation: "E = (√25 × 18) - 15 = (5 × 18) - 15 = 90 - 15 = 75",
         result: 75,
       },
+      {
+        stepIndex: 6,
+        variable: "F",
+        formula: "(E + 25) ÷ 5 × 3",
+        explanation: "F = ((75 + 25) ÷ 5) × 3 = (100 ÷ 5) × 3 = 20 × 3 = 60",
+        result: 60,
+      },
     ],
-    correctAnswer: 75,
+    correctAnswer: 60,
+    clue: "Perhatikan tanda kurung pada rumus F: (E + 25) dihitung terlebih dahulu sebelum dibagi 5 lalu dikali 3.",
   },
   {
     id: 5,
     title: "Papan 05: Grand Master Finale",
+    subtitle: "Rantai Puncak 7 Tahap (CoC Final Arena)",
     difficulty: "Master",
     difficultyColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
     points: 500,
-    targetVariable: "E",
+    targetVariable: "G",
+    estimatedTime: "6-8 Menit",
+    contextNote: "Papan pamungkas dengan 7 variabel (A sampai G) berantai tingkat tinggi melibatkan pangkat tiga (F³), akar, dan perkalian silang.",
     steps: [
       {
         stepIndex: 1,
@@ -344,11 +367,26 @@ export const BOARDS_DATA: GameBoard[] = [
       {
         stepIndex: 5,
         variable: "E",
-        formula: "(D ÷ 8) × 7 - 31",
-        explanation: "E = ((200 ÷ 8) × 7) - 31 = (25 × 7) - 31 = 175 - 31 = 144",
+        formula: "D ÷ 8 × 7",
+        explanation: "E = (200 ÷ 8) × 7 = 25 × 7 = 175",
+        result: 175,
+      },
+      {
+        stepIndex: 6,
+        variable: "F",
+        formula: "(E + 25) ÷ 20",
+        explanation: "F = (175 + 25) ÷ 20 = 200 ÷ 20 = 10",
+        result: 10,
+      },
+      {
+        stepIndex: 7,
+        variable: "G",
+        formula: "F³ ÷ 8 + 19",
+        explanation: "G = (10³ ÷ 8) + 19 = (1000 ÷ 8) + 19 = 125 + 19 = 144",
         result: 144,
       },
     ],
     correctAnswer: 144,
+    clue: "10³ = 1000. 1000 dibagi 8 adalah 125. Tambahkan 19 untuk memperoleh nilai G.",
   },
 ];
