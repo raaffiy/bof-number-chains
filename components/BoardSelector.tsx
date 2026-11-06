@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Users,
   Play,
-  RotateCcw,
 } from "lucide-react";
 import { GameBoard, Team, BOARDS_DATA } from "@/lib/game-data";
 
@@ -128,7 +127,7 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
                     <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
                       <div className="flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>Selesai (Benar)</span>
+                        <span>Selesai</span>
                       </div>
                     </div>
                   ) : (
@@ -143,28 +142,17 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
                 </div>
               </div>
 
-              {/* Tombol aksi */}
-              <button
-                onClick={() => onSelectBoard(board.id)}
-                className={`relative w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${isSolved
-                    ? "bg-slate-800/80 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 focus-visible:ring-emerald-400"
-                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/30 focus-visible:ring-blue-400"
-                  }`}
-              >
-                {isSolved ? (
-                  <>
-                    <RotateCcw className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-rotate-180 motion-reduce:transform-none" />
-                    <span>Kerjakan Ulang</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-white" />
-                    <span>Mulai Kerjakan Papan</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1 motion-reduce:transform-none" />
-                  </>
-                )}
-              </button>
+              {/* Tombol aksi: hanya tampil jika belum dikerjakan */}
+              {!isSolved && (
+                <button
+                  onClick={() => onSelectBoard(board.id)}
+                  className="relative w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/30 focus-visible:ring-blue-400"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Mulai Kerjakan Papan</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1 motion-reduce:transform-none" />
+                </button>
+              )}
             </div>
           );
         })}

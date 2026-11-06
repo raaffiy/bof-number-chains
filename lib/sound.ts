@@ -5,7 +5,10 @@ let audioCtx: AudioContext | null = null;
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
     if (AudioContextClass) {
       audioCtx = new AudioContextClass();
     }
@@ -17,52 +20,16 @@ function getAudioContext(): AudioContext | null {
 }
 
 export const playSound = {
-  click: (muted = false) => {
-    if (muted) return;
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.05);
-
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.05);
-    } catch {
-      // Ignore audio failure
-    }
+  // Dinonaktifkan: Tidak ada suara saat user menekan button apapun
+  click: (..._args: unknown[]) => {
+    void _args;
   },
 
-  select: (muted = false) => {
-    if (muted) return;
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(520, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(780, ctx.currentTime + 0.1);
-
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.12);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.12);
-    } catch {
-      // Ignore audio failure
-    }
+  select: (..._args: unknown[]) => {
+    void _args;
   },
 
+  // Suara saat peserta menjawab: "Jawaban Benar"
   success: (muted = false) => {
     if (muted) return;
     try {
@@ -93,6 +60,7 @@ export const playSound = {
     }
   },
 
+  // Suara saat peserta menjawab: "Jawaban Salah"
   error: (muted = false) => {
     if (muted) return;
     try {

@@ -72,7 +72,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 Papan Peringkat Fakultas (Leaderboard)
               </h3>
               <p className="text-xs text-slate-400">
-                Battle of Faculties • Total Akumulasi Skor & Waktu
+                Battle of Faculties • Total Akumulasi Skor
               </p>
             </div>
           </div>
@@ -157,17 +157,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* Footer info */}
-        <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-          <span>Peringkat diperbarui secara otomatis saat papan diselesaikan.</span>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold cursor-pointer"
-          >
-            Tutup
-          </button>
         </div>
       </div>
     </div>

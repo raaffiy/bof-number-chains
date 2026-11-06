@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "BOF: Battle Of Faculties - Number Chains Challenge",
   description: "Website kompetisi Number Chains antar fakultas",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

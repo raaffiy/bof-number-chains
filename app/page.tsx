@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { TeamSelector } from "@/components/TeamSelector";
 import { BoardSelector } from "@/components/BoardSelector";
 import { GameBoardArena } from "@/components/GameBoardArena";
 import { ResultOverlay } from "@/components/ResultOverlay";
-import { LeaderboardModal } from "@/components/LeaderboardModal";
 import { TEAMS_DATA, BOARDS_DATA, Team, GameBoard } from "@/lib/game-data";
 import { playSound } from "@/lib/sound";
 import {
@@ -15,13 +15,12 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase";
 import {
-  Trophy,
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
   Layers,
   Flame,
-  Database,
+  Eye,
 } from "lucide-react";
 
 export default function Home() {
@@ -31,7 +30,6 @@ export default function Home() {
   >("team_select");
   const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [dbSyncStatus, setDbSyncStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
@@ -443,20 +441,16 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Floating Action Button for Faculty Leaderboard */}
+      {/* Floating Action Button for Show Papan
       <div className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-30">
-        <button
-          onClick={() => {
-            playSound.click(isMuted);
-            setShowLeaderboard(true);
-          }}
-          className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 border border-amber-300/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+        <Link
+          href="/show"
+          className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 border border-blue-400/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
-          <Trophy className="w-4 h-4 fill-slate-950" />
-          <span className="hidden sm:inline">Leaderboard</span>
-          <span className="sm:hidden">Leaderboard</span>
-        </button>
-      </div>
+          <Eye className="w-4 h-4" />
+          <span>Show Papan</span>
+        </Link>
+      </div> */}
 
       {/* Full Screen Overlay for Answers with Supabase DB Status */}
       {overlayState && activeBoard && selectedTeam && (
@@ -475,14 +469,6 @@ export default function Home() {
           hasNextBoard={overlayState.boardId < 5}
         />
       )}
-
-      {/* Faculty Leaderboard Modal */}
-      <LeaderboardModal
-        isOpen={showLeaderboard}
-        onClose={() => setShowLeaderboard(false)}
-        teamProgress={teamProgress}
-        selectedTeamId={selectedTeamId}
-      />
     </div>
   );
 }
