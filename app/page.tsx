@@ -402,12 +402,6 @@ export default function Home() {
                 <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <Layers className="w-5 h-5" />
                 </div>
-                <div className="truncate">
-                  <div className="text-[11px] text-slate-400">Tim Aktif:</div>
-                  <div className="text-xs sm:text-sm font-bold text-white truncate">
-                    {selectedTeam.name} ({currentTeamStats.solvedBoards.length}/5 Selesai)
-                  </div>
-                </div>
               </div>
 
               <button
@@ -430,12 +424,6 @@ export default function Home() {
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <Flame className="w-5 h-5" />
-                </div>
-                <div className="truncate">
-                  <div className="text-[11px] text-slate-400">Sedang Mengerjakan:</div>
-                  <div className="text-xs sm:text-sm font-bold text-white truncate">
-                    {activeBoard.title} • {selectedTeam.name}
-                  </div>
                 </div>
               </div>
 
@@ -465,7 +453,7 @@ export default function Home() {
           className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 border border-amber-300/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
           <Trophy className="w-4 h-4 fill-slate-950" />
-          <span className="hidden sm:inline">Leaderboard Fakultas</span>
+          <span className="hidden sm:inline">Leaderboard</span>
           <span className="sm:hidden">Leaderboard</span>
         </button>
       </div>
