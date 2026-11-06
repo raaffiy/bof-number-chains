@@ -301,7 +301,7 @@ export default function ShowPapanPage() {
           <div className="text-left">
             <div className="flex items-center gap-1.5">
               <span className="font-black text-xs sm:text-sm lg:text-base tracking-wider text-white">
-                SHOW PAPAN SOAL
+                PAPAN SOAL
               </span>
               <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider hidden sm:inline-block">
                 Battle of Faculties
