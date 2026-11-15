@@ -52,12 +52,7 @@ export const TEAMS_DATA: Team[] = [
       glow: "rgba(59, 130, 246, 0.5)",
       badge: "bg-blue-500/20 text-blue-300 border-blue-500/30",
     },
-    members: [
-      { name: "Sandy Kristian"},
-      { name: "Axel Giovanni"},
-      { name: "Hanif Pratama"},
-      { name: "Yesaya Kevin"},
-    ],
+    members: [],
   },
   {
     id: "fasilkom",
@@ -69,12 +64,7 @@ export const TEAMS_DATA: Team[] = [
       glow: "rgba(6, 182, 212, 0.5)",
       badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
     },
-    members: [
-      { name: "Maxwell Salvador"},
-      { name: "Shakira Amirah"},
-      { name: "Kevin Lius"},
-      { name: "Xaviera Putri"},
-    ],
+    members: [],
   },
   {
     id: "fk",
@@ -83,15 +73,10 @@ export const TEAMS_DATA: Team[] = [
       primary: "from-emerald-500 to-green-600",
       border: "border-emerald-400",
       bg: "bg-emerald-950/40",
-      glow: "rgba(16, 185, 129, 0.5)",
+      glow: "rgba(168, 85, 247, 0.5)",
       badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     },
-    members: [
-      { name: "Jessica Margaretha"},
-      { name: "Naufal Hafizh"},
-      { name: "Sarah Firdaus"},
-      { name: "Kenji Wibawa"},
-    ],
+    members: [],
   },
   {
     id: "fmipa",
@@ -103,12 +88,7 @@ export const TEAMS_DATA: Team[] = [
       glow: "rgba(168, 85, 247, 0.5)",
       badge: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     },
-    members: [
-      { name: "Kiana Almira"},
-      { name: "Gregorius Aldo"},
-      { name: "Christopher Chen"},
-      { name: "Amanda Clarissa"},
-    ],
+    members: [],
   },
   {
     id: "feb",
@@ -120,14 +100,141 @@ export const TEAMS_DATA: Team[] = [
       glow: "rgba(245, 158, 11, 0.5)",
       badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     },
-    members: [
-      { name: "Davin Alamsyah"},
-      { name: "Lyora Wijaya"},
-      { name: "Edward Santoso"},
-      { name: "Fathan Mahendra"},
-    ],
+    members: [],
   },
 ];
+
+export const CUSTOM_GROUP_THEMES = [
+  {
+    primary: "from-blue-600 to-indigo-600",
+    border: "border-blue-500",
+    bg: "bg-blue-950/40",
+    glow: "rgba(59, 130, 246, 0.5)",
+    badge: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  },
+  {
+    primary: "from-purple-600 to-pink-600",
+    border: "border-purple-500",
+    bg: "bg-purple-950/40",
+    glow: "rgba(168, 85, 247, 0.5)",
+    badge: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  },
+  {
+    primary: "from-emerald-500 to-teal-600",
+    border: "border-emerald-400",
+    bg: "bg-emerald-950/40",
+    glow: "rgba(16, 185, 129, 0.5)",
+    badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  },
+  {
+    primary: "from-amber-500 to-orange-600",
+    border: "border-amber-400",
+    bg: "bg-amber-950/40",
+    glow: "rgba(245, 158, 11, 0.5)",
+    badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  },
+  {
+    primary: "from-rose-500 to-red-600",
+    border: "border-rose-400",
+    bg: "bg-rose-950/40",
+    glow: "rgba(244, 63, 94, 0.5)",
+    badge: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+  },
+  {
+    primary: "from-cyan-500 to-blue-600",
+    border: "border-cyan-400",
+    bg: "bg-cyan-950/40",
+    glow: "rgba(6, 182, 212, 0.5)",
+    badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+  },
+  {
+    primary: "from-violet-500 to-purple-700",
+    border: "border-violet-400",
+    bg: "bg-violet-950/40",
+    glow: "rgba(139, 92, 246, 0.5)",
+    badge: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  },
+  {
+    primary: "from-pink-500 to-rose-600",
+    border: "border-pink-400",
+    bg: "bg-pink-950/40",
+    glow: "rgba(236, 72, 153, 0.5)",
+    badge: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+  },
+];
+
+export function buildDynamicTeams(
+  membersList: { id: string; name: string; team_id: string | null; team_name: string | null }[],
+  groupSettings?: { group_type?: "faculty" | "custom"; custom_groups?: { id: string; name: string }[] } | null
+): Team[] {
+  const groupType = groupSettings?.group_type || "faculty";
+
+  const hasCustomMembers = membersList.some(
+    (m) => m.team_id && m.team_id.startsWith("custom_")
+  );
+  const hasFacultyMembers = membersList.some((m) =>
+    ["ft", "fasilkom", "fk", "fmipa", "feb"].includes(m.team_id || "")
+  );
+
+  // If group_type is custom, or if members belong to custom groups and none to faculty
+  if (groupType === "custom" || (hasCustomMembers && !hasFacultyMembers)) {
+    let customCount = groupSettings?.custom_groups?.length || 4;
+    membersList.forEach((m) => {
+      if (m.team_id && m.team_id.startsWith("custom_")) {
+        const num = parseInt(m.team_id.replace("custom_", ""), 10);
+        if (!isNaN(num) && num > customCount) {
+          customCount = num;
+        }
+      }
+    });
+
+    return Array.from({ length: customCount }).map((_, i) => {
+      const id = `custom_${i + 1}`;
+      const defaultName = `Kelompok ${i + 1}`;
+      const customName =
+        groupSettings?.custom_groups?.find((g) => g.id === id)?.name || defaultName;
+      const theme = CUSTOM_GROUP_THEMES[i % CUSTOM_GROUP_THEMES.length];
+
+      const assigned = membersList.filter(
+        (m) =>
+          m.team_id === id ||
+          m.team_name === customName ||
+          m.team_name === defaultName
+      );
+
+      return {
+        id,
+        name: customName,
+        shortCode: `K${i + 1}`,
+        alias: `Kelompok ${i + 1}`,
+        motto: "Bersama Meraih Juara",
+        themeColor: theme,
+        members: assigned.map((m) => ({
+          name: m.name,
+          role: "Anggota",
+        })),
+      };
+    });
+  }
+
+  // Otherwise, Faculty Groups
+  return TEAMS_DATA.map((facultyTeam) => {
+    const assigned = membersList.filter(
+      (m) =>
+        m.team_id === facultyTeam.id ||
+        m.team_name === facultyTeam.name ||
+        (m.team_name && m.team_name.toLowerCase().includes(facultyTeam.id.toLowerCase()))
+    );
+
+    return {
+      ...facultyTeam,
+      members: assigned.map((m) => ({
+        name: m.name,
+        role: "Anggota",
+      })),
+    };
+  });
+}
 
 export const BOARDS_DATA: GameBoard[] = [
   {

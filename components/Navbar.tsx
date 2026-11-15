@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Trophy, Volume2, VolumeX, RotateCcw, Users, Layers, PlayCircle } from "lucide-react";
+import Link from "next/link";
+import { Trophy, Volume2, VolumeX, RotateCcw, Users, Layers, PlayCircle, Dices } from "lucide-react";
 import { Team } from "@/lib/game-data";
 
 interface NavbarProps {

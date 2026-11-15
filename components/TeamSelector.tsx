@@ -1,35 +1,40 @@
 "use client";
 
 import React from "react";
-import { Users, CheckCircle2, ShieldCheck, Sparkles, Award } from "lucide-react";
+import Link from "next/link";
+import { Users, CheckCircle2, Award, Dices } from "lucide-react";
 import { Team, TEAMS_DATA } from "@/lib/game-data";
 
 interface TeamSelectorProps {
   selectedTeamId: string | null;
   onSelectTeam: (teamId: string) => void;
   teamProgress: Record<string, { solvedBoards: number[]; totalScore: number }>;
+  teams?: Team[];
 }
 
 export const TeamSelector: React.FC<TeamSelectorProps> = ({
   selectedTeamId,
   onSelectTeam,
   teamProgress,
+  teams,
 }) => {
+  const displayTeams = teams && teams.length > 0 ? teams : TEAMS_DATA;
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn pb-28">
       {/* Header Banner */}
       <div className="text-center max-w-3xl mx-auto mb-10">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Pilih Tim Anda
+          Pilih Tim / Kelompok Anda
         </h1>
         <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
-          pilih salah satu tim delegasi fakultas yang akan berlaga.
+          Pilih salah satu kelompok yang telah dibagikan untuk memulai pengerjaan arena papan.
         </p>
       </div>
 
       {/* Grid of Team Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        {TEAMS_DATA.map((team: Team) => {
+        {displayTeams.map((team: Team) => {
           const isSelected = selectedTeamId === team.id;
           const progress = teamProgress[team.id] || { solvedBoards: [], totalScore: 0 };
           const solvedCount = progress.solvedBoards.length;
@@ -58,7 +63,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                 {/* Header Info */}
                 <div className="flex items-start justify-between gap-3 mb-4 mt-1">
                   <div>
-                    <h3 className="text-xl font-bold text-white mt-1.5 group-hover:text-blue-300 transition-colors">
+                    <h3 suppressHydrationWarning className="text-xl font-bold text-white mt-1.5 group-hover:text-blue-300 transition-colors">
                       {team.name}
                     </h3>
                   </div>
@@ -78,23 +83,50 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
 
                 {/* Team Members List */}
                 <div className="space-y-2 mb-5">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Daftar Anggota Tim ({team.members.length} Orang):</span>
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Daftar Anggota Kelompok</span>
+                    </span>
+                    <span suppressHydrationWarning className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-purple-300 border border-purple-500/30">
+                      {team.members.length} Orang
+                    </span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2">
-                    {team.members.map((member, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/40 border border-slate-800/60"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-200">{member.name}</span>
+                  {team.members.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {team.members.map((member, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700/60 hover:bg-slate-800 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-sm">
+                              {member.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-slate-200 truncate">
+                              {member.name}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            #{idx + 1}
+                          </span>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400 p-3.5 rounded-xl bg-slate-950/60 border border-dashed border-slate-800 flex flex-col items-center justify-center gap-1.5 text-center">
+                      <span className="text-slate-400">Belum ada anggota di kelompok ini</span>
+                      <Link
+                        href="/spin"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-purple-400 hover:text-purple-300 font-semibold underline flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Dices className="w-3.5 h-3.5 text-pink-400" />
+                        <span>Bagi Kelompok di Halaman Spin</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 

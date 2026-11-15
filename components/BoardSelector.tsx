@@ -49,7 +49,11 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
             </h2>
             <div className="flex flex-wrap items-center gap-1 text-xs text-slate-300 mt-0.5">
               <Users className="w-3.5 h-3.5 text-slate-400 mr-0.5" />
-              <span>{selectedTeam.members.map((m) => m.name).join(" • ")}</span>
+              <span>
+                {selectedTeam.members && selectedTeam.members.length > 0
+                  ? selectedTeam.members.map((m) => m.name).join(" • ")
+                  : "Belum ada anggota terdaftar"}
+              </span>
             </div>
           </div>
         </div>

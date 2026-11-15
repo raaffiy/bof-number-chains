@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { TeamSelector } from "@/components/TeamSelector";
 import { BoardSelector } from "@/components/BoardSelector";
 import { GameBoardArena } from "@/components/GameBoardArena";
 import { ResultOverlay } from "@/components/ResultOverlay";
-import { TEAMS_DATA, BOARDS_DATA, Team, GameBoard } from "@/lib/game-data";
+import { TEAMS_DATA, BOARDS_DATA, Team, GameBoard, buildDynamicTeams } from "@/lib/game-data";
 import { playSound } from "@/lib/sound";
 import {
   submitGameResultToSupabase,
   fetchSubmissionsFromSupabase,
+  fetchMembersFromSupabase,
+  fetchGroupSettingsFromSupabase,
   isSupabaseConfigured,
 } from "@/lib/supabase";
 import {
@@ -21,6 +23,7 @@ import {
   Layers,
   Flame,
   Eye,
+  Dices,
 } from "lucide-react";
 
 export default function Home() {
@@ -33,6 +36,7 @@ export default function Home() {
   const [dbSyncStatus, setDbSyncStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const [teams, setTeams] = useState<Team[]>(TEAMS_DATA);
 
   // Per-team progress tracker
   const [teamProgress, setTeamProgress] = useState<
@@ -73,45 +77,108 @@ export default function Home() {
     timeSpentSeconds: number;
   } | null>(null);
 
-  // Sync with Supabase on mount
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
+  // Load teams and member assignments from Supabase & cache
+  const loadTeamsAndMembers = useCallback(() => {
+    Promise.all([
+      fetchMembersFromSupabase(),
+      fetchGroupSettingsFromSupabase(),
+    ]).then(([membersRes, settingsRes]) => {
+      const membersData = membersRes.success && membersRes.data ? membersRes.data : [];
+      const settingsData = settingsRes.success && settingsRes.data ? settingsRes.data : null;
 
-    fetchSubmissionsFromSupabase().then((res) => {
-      if (res.success && res.data && res.data.length > 0) {
-        console.log(`[Supabase] Memuat ${res.data.length} riwayat jawaban dari database.`);
-        setTeamProgress((prev) => {
-          const updated = { ...prev };
-          res.data.forEach((sub) => {
-            if (!updated[sub.team_id]) {
-              updated[sub.team_id] = {
-                solvedBoards: [],
-                totalScore: 0,
-                boardTimes: {},
-              };
+      if (membersData.length > 0 || settingsData) {
+        const dynamicTeams = buildDynamicTeams(membersData, settingsData);
+        setTeams(dynamicTeams);
+
+        // Update local cache
+        if (typeof window !== "undefined") {
+          try {
+            if (membersData.length > 0) {
+              localStorage.setItem("bof_members_cache", JSON.stringify(membersData));
             }
-            if (sub.is_correct) {
-              if (!updated[sub.team_id].solvedBoards.includes(sub.board_id)) {
-                updated[sub.team_id].solvedBoards.push(sub.board_id);
-                updated[sub.team_id].totalScore += sub.points_awarded;
-              }
-              if (
-                !updated[sub.team_id].boardTimes[sub.board_id] ||
-                sub.time_spent_seconds < updated[sub.team_id].boardTimes[sub.board_id]
-              ) {
-                updated[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
-              }
+            if (settingsData) {
+              localStorage.setItem("bof_group_settings_cache", JSON.stringify(settingsData));
             }
-          });
-          return updated;
-        });
+          } catch (e) {
+            console.warn("Cache sync error", e);
+          }
+        }
       }
     });
   }, []);
 
+  // Sync submissions and listen for member/team updates
+  useEffect(() => {
+    // Hydrate cached teams in microtask so SSR matches client initial render perfectly
+    Promise.resolve().then(() => {
+      try {
+        const cachedMembers = localStorage.getItem("bof_members_cache");
+        const cachedSettings = localStorage.getItem("bof_group_settings_cache");
+        if (cachedMembers) {
+          const parsedMembers = JSON.parse(cachedMembers);
+          const parsedSettings = cachedSettings ? JSON.parse(cachedSettings) : null;
+          const dynamicTeams = buildDynamicTeams(parsedMembers, parsedSettings);
+          if (dynamicTeams.length > 0) {
+            setTeams(dynamicTeams);
+          }
+        }
+      } catch {}
+    });
+
+    loadTeamsAndMembers();
+
+    // Re-sync when user returns to this tab or when data updates in another route
+    const handleFocus = () => loadTeamsAndMembers();
+    const handleStorage = () => loadTeamsAndMembers();
+    const handleCustomUpdate = () => loadTeamsAndMembers();
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("bof_data_updated", handleCustomUpdate);
+
+    if (isSupabaseConfigured) {
+      fetchSubmissionsFromSupabase().then((res) => {
+        if (res.success && res.data && res.data.length > 0) {
+          console.log(`[Supabase] Memuat ${res.data.length} riwayat jawaban dari database.`);
+          setTeamProgress((prev) => {
+            const updated = { ...prev };
+            res.data.forEach((sub) => {
+              if (!updated[sub.team_id]) {
+                updated[sub.team_id] = {
+                  solvedBoards: [],
+                  totalScore: 0,
+                  boardTimes: {},
+                };
+              }
+              if (sub.is_correct) {
+                if (!updated[sub.team_id].solvedBoards.includes(sub.board_id)) {
+                  updated[sub.team_id].solvedBoards.push(sub.board_id);
+                  updated[sub.team_id].totalScore += sub.points_awarded;
+                }
+                if (
+                  !updated[sub.team_id].boardTimes[sub.board_id] ||
+                  sub.time_spent_seconds < updated[sub.team_id].boardTimes[sub.board_id]
+                ) {
+                  updated[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
+                }
+              }
+            });
+            return updated;
+          });
+        }
+      });
+    }
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("bof_data_updated", handleCustomUpdate);
+    };
+  }, [loadTeamsAndMembers]);
+
   // Selected team object
   const selectedTeam: Team | null =
-    TEAMS_DATA.find((t) => t.id === selectedTeamId) || null;
+    teams.find((t) => t.id === selectedTeamId) || null;
 
   // Active board object
   const activeBoard: GameBoard | null =
@@ -322,6 +389,7 @@ export default function Home() {
             selectedTeamId={selectedTeamId}
             onSelectTeam={handleSelectTeam}
             teamProgress={teamProgress}
+            teams={teams}
           />
         )}
 
@@ -440,17 +508,6 @@ export default function Home() {
           )}
         </div>
       </div>
-
-      {/* Floating Action Button for Show Papan
-      <div className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-30">
-        <Link
-          href="/show"
-          className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 border border-blue-400/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-        >
-          <Eye className="w-4 h-4" />
-          <span>Show Papan</span>
-        </Link>
-      </div> */}
 
       {/* Full Screen Overlay for Answers with Supabase DB Status */}
       {overlayState && activeBoard && selectedTeam && (
