@@ -146,3 +146,36 @@ CREATE POLICY "Public All on group_settings"
 INSERT INTO public.group_settings (id, members_per_group, group_type, custom_groups)
 VALUES ('default', 4, 'faculty', '[]'::jsonb)
 ON CONFLICT (id) DO NOTHING;
+
+-- 8. Indeks Performa untuk Mempercepat Kueri
+CREATE INDEX IF NOT EXISTS idx_submissions_created_at ON public.submissions (created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_submissions_team_id ON public.submissions (team_id);
+CREATE INDEX IF NOT EXISTS idx_members_created_at ON public.members (created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_members_team_id ON public.members (team_id);
+
+-- 9. Aktifkan Realtime Replication untuk Sinkronisasi Lintas Perangkat / Proyektor (Opsional)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'submissions'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'members'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.members;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'group_settings'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.group_settings;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Lewati jika user belum memiliki permission publikasi realtime
+        NULL;
+END $$;

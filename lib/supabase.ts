@@ -115,6 +115,25 @@ export async function submitGameResultToSupabase(payload: SubmissionPayload): Pr
   }
 }
 
+// Shared in-flight promise cache to deduplicate concurrent network calls
+let inFlightFetchSubmissions: Promise<{
+  success: boolean;
+  data: SupabaseSubmissionRow[];
+  error?: string;
+}> | null = null;
+
+let inFlightFetchMembers: Promise<{
+  success: boolean;
+  data: MemberRecord[];
+  error?: string;
+}> | null = null;
+
+let inFlightFetchSettings: Promise<{
+  success: boolean;
+  data?: GroupSettingsRecord;
+  error?: string;
+}> | null = null;
+
 /**
  * Ambil seluruh riwayat pengerjaan dari database untuk sinkronisasi skor & papan selesai
  */
@@ -127,21 +146,31 @@ export async function fetchSubmissionsFromSupabase(): Promise<{
     return { success: false, data: [] };
   }
 
-  try {
-    const { data, error } = await supabase
-      .from("submissions")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      return { success: false, data: [], error: error.message };
-    }
-
-    return { success: true, data: (data as SupabaseSubmissionRow[]) || [] };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Gagal memuat data dari Supabase";
-    return { success: false, data: [], error: message };
+  if (inFlightFetchSubmissions) {
+    return inFlightFetchSubmissions;
   }
+
+  inFlightFetchSubmissions = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from("submissions")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        return { success: false, data: [], error: error.message };
+      }
+
+      return { success: true, data: (data as SupabaseSubmissionRow[]) || [] };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Gagal memuat data dari Supabase";
+      return { success: false, data: [], error: message };
+    } finally {
+      inFlightFetchSubmissions = null;
+    }
+  })();
+
+  return inFlightFetchSubmissions;
 }
 
 export interface MemberRecord {
@@ -173,22 +202,32 @@ export async function fetchMembersFromSupabase(): Promise<{
     return { success: false, data: [], error: "Supabase belum terkonfigurasi" };
   }
 
-  try {
-    const { data, error } = await supabase
-      .from("members")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.warn("[Supabase] Gagal mengambil data anggota:", error.message);
-      return { success: false, data: [], error: error.message };
-    }
-
-    return { success: true, data: (data as MemberRecord[]) || [] };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Kesalahan koneksi";
-    return { success: false, data: [], error: message };
+  if (inFlightFetchMembers) {
+    return inFlightFetchMembers;
   }
+
+  inFlightFetchMembers = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from("members")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.warn("[Supabase] Gagal mengambil data anggota:", error.message);
+        return { success: false, data: [], error: error.message };
+      }
+
+      return { success: true, data: (data as MemberRecord[]) || [] };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Kesalahan koneksi";
+      return { success: false, data: [], error: message };
+    } finally {
+      inFlightFetchMembers = null;
+    }
+  })();
+
+  return inFlightFetchMembers;
 }
 
 /**
@@ -307,9 +346,10 @@ export async function deleteAllMembersFromSupabase(): Promise<{
 
 /**
  * Menyimpan / memperbarui hasil penugasan kelompok untuk banyak anggota
+ * Mendukung Single-Query Batch Upsert jika nama anggota disertakan, atau chunked batching.
  */
 export async function saveAllGroupAssignmentsToSupabase(
-  assignments: { id: string; team_id: string | null; team_name: string | null }[]
+  assignments: { id: string; name?: string; team_id: string | null; team_name: string | null }[]
 ): Promise<{
   success: boolean;
   error?: string;
@@ -318,22 +358,53 @@ export async function saveAllGroupAssignmentsToSupabase(
     return { success: false, error: "Supabase belum terkonfigurasi" };
   }
 
+  if (assignments.length === 0) {
+    return { success: true };
+  }
+
   try {
-    const updatePromises = assignments.map((item) =>
-      supabase!
-        .from("members")
-        .update({
-          team_id: item.team_id,
-          team_name: item.team_name,
-          assigned_at: item.team_id ? new Date().toISOString() : null,
-        })
-        .eq("id", item.id)
+    // Jika semua item menyertakan name, jalankan Batch Upsert 1 request HTTP saja (sangat cepat & hemat resource)
+    const allHaveNames = assignments.every(
+      (item) => typeof item.name === "string" && item.name.trim().length > 0
     );
 
-    const results = await Promise.all(updatePromises);
-    const hasError = results.find((r) => r.error);
-    if (hasError && hasError.error) {
-      return { success: false, error: hasError.error.message };
+    if (allHaveNames) {
+      const rows = assignments.map((item) => ({
+        id: item.id,
+        name: item.name!.trim(),
+        team_id: item.team_id,
+        team_name: item.team_name,
+        assigned_at: item.team_id ? new Date().toISOString() : null,
+      }));
+
+      const { error } = await supabase.from("members").upsert(rows);
+      if (error) {
+        console.warn("[Supabase] Gagal batch upsert assignments:", error.message);
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    }
+
+    // Fallback jika name tidak tersedia: lakukan update dalam chunk ukuran 10 untuk menjaga batas koneksi
+    const chunkSize = 10;
+    for (let i = 0; i < assignments.length; i += chunkSize) {
+      const chunk = assignments.slice(i, i + chunkSize);
+      const updatePromises = chunk.map((item) =>
+        supabase!
+          .from("members")
+          .update({
+            team_id: item.team_id,
+            team_name: item.team_name,
+            assigned_at: item.team_id ? new Date().toISOString() : null,
+          })
+          .eq("id", item.id)
+      );
+
+      const results = await Promise.all(updatePromises);
+      const hasError = results.find((r) => r.error);
+      if (hasError && hasError.error) {
+        return { success: false, error: hasError.error.message };
+      }
     }
 
     return { success: true };
@@ -375,6 +446,37 @@ export async function resetAllGroupAssignmentsInSupabase(): Promise<{
 }
 
 /**
+ * Mereset seluruh skor soal pada Papan Tim menjadi 0 (menghapus seluruh riwayat submissions di Supabase)
+ */
+export async function resetAllSubmissionsInSupabase(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  if (!supabase) {
+    return { success: false, error: "Supabase belum terkonfigurasi" };
+  }
+
+  try {
+    const { error } = await supabase
+      .from("submissions")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+
+    if (error) {
+      console.warn("[Supabase] Gagal mereset submissions:", error.message);
+      return { success: false, error: error.message };
+    }
+
+    console.log("[Supabase] Berhasil mereset seluruh skor soal pada Papan Tim menjadi 0.");
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Kesalahan koneksi";
+    console.warn("[Supabase] Exception saat reset submissions:", message);
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Mengambil konfigurasi pembagian kelompok
  */
 export async function fetchGroupSettingsFromSupabase(): Promise<{
@@ -386,22 +488,32 @@ export async function fetchGroupSettingsFromSupabase(): Promise<{
     return { success: false, error: "Supabase belum terkonfigurasi" };
   }
 
-  try {
-    const { data, error } = await supabase
-      .from("group_settings")
-      .select("*")
-      .eq("id", "default")
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data: data as GroupSettingsRecord };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Kesalahan koneksi";
-    return { success: false, error: message };
+  if (inFlightFetchSettings) {
+    return inFlightFetchSettings;
   }
+
+  inFlightFetchSettings = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from("group_settings")
+        .select("*")
+        .eq("id", "default")
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: data as GroupSettingsRecord };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Kesalahan koneksi";
+      return { success: false, error: message };
+    } finally {
+      inFlightFetchSettings = null;
+    }
+  })();
+
+  return inFlightFetchSettings;
 }
 
 /**

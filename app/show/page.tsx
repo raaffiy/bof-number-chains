@@ -22,6 +22,7 @@ import { LeaderboardModal } from "@/components/LeaderboardModal";
 import {
   fetchSubmissionsFromSupabase,
   isSupabaseConfigured,
+  supabase,
 } from "@/lib/supabase";
 
 // Crest Ornament with silver wings and cyan/turquoise jewel (matching example image)
@@ -160,39 +161,99 @@ export default function ShowPapanPage() {
     return initial;
   });
 
-  // Sync leaderboard with Supabase on mount
+  // Sync leaderboard with Supabase on mount and listen for real-time score updates
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
-    fetchSubmissionsFromSupabase().then((res) => {
-      if (res.success && res.data && res.data.length > 0) {
-        setTeamProgress((prev) => {
-          const updated = { ...prev };
-          res.data.forEach((sub) => {
-            if (!updated[sub.team_id]) {
-              updated[sub.team_id] = {
-                solvedBoards: [],
-                totalScore: 0,
-                boardTimes: {},
-              };
-            }
-            if (sub.is_correct) {
-              if (!updated[sub.team_id].solvedBoards.includes(sub.board_id)) {
-                updated[sub.team_id].solvedBoards.push(sub.board_id);
-                updated[sub.team_id].totalScore += sub.points_awarded;
-              }
-              if (
-                !updated[sub.team_id].boardTimes[sub.board_id] ||
-                sub.time_spent_seconds < updated[sub.team_id].boardTimes[sub.board_id]
-              ) {
-                updated[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
-              }
-            }
+    const loadSubmissions = () => {
+      fetchSubmissionsFromSupabase().then((res) => {
+        if (res.success) {
+          const freshProgress: Record<
+            string,
+            { solvedBoards: number[]; totalScore: number; boardTimes: Record<number, number> }
+          > = {};
+
+          TEAMS_DATA.forEach((t) => {
+            freshProgress[t.id] = {
+              solvedBoards: [],
+              totalScore: 0,
+              boardTimes: {},
+            };
           });
-          return updated;
-        });
+
+          if (res.data && res.data.length > 0) {
+            res.data.forEach((sub) => {
+              if (!freshProgress[sub.team_id]) {
+                freshProgress[sub.team_id] = {
+                  solvedBoards: [],
+                  totalScore: 0,
+                  boardTimes: {},
+                };
+              }
+              if (sub.is_correct) {
+                if (!freshProgress[sub.team_id].solvedBoards.includes(sub.board_id)) {
+                  freshProgress[sub.team_id].solvedBoards.push(sub.board_id);
+                  freshProgress[sub.team_id].totalScore += sub.points_awarded;
+                }
+                if (
+                  !freshProgress[sub.team_id].boardTimes[sub.board_id] ||
+                  sub.time_spent_seconds < freshProgress[sub.team_id].boardTimes[sub.board_id]
+                ) {
+                  freshProgress[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
+                }
+              }
+            });
+          }
+
+          setTeamProgress(freshProgress);
+        }
+      });
+    };
+
+    loadSubmissions();
+
+    // Debounce listener to avoid redundant rapid calls
+    let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleDebouncedSync = () => {
+      if (syncTimeout) clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        loadSubmissions();
+      }, 300);
+    };
+
+    // Listen to real-time events from spin reset or window focus
+    window.addEventListener("focus", handleDebouncedSync);
+    window.addEventListener("storage", handleDebouncedSync);
+    window.addEventListener("bof_data_updated", handleDebouncedSync);
+
+    // Supabase Realtime channel for live score updates on projector
+    let realtimeChannel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
+    if (supabase) {
+      try {
+        realtimeChannel = supabase
+          .channel("show_page_realtime")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "submissions" },
+            () => {
+              loadSubmissions();
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn("[Realtime Show] Subscription skipped:", err);
       }
-    });
+    }
+
+    return () => {
+      if (syncTimeout) clearTimeout(syncTimeout);
+      window.removeEventListener("focus", handleDebouncedSync);
+      window.removeEventListener("storage", handleDebouncedSync);
+      window.removeEventListener("bof_data_updated", handleDebouncedSync);
+      if (realtimeChannel && supabase) {
+        supabase.removeChannel(realtimeChannel);
+      }
+    };
   }, []);
 
   // Set Timer State

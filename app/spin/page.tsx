@@ -26,6 +26,7 @@ import {
   deleteAllMembersFromSupabase,
   saveAllGroupAssignmentsToSupabase,
   resetAllGroupAssignmentsInSupabase,
+  resetAllSubmissionsInSupabase,
   fetchGroupSettingsFromSupabase,
   saveGroupSettingsToSupabase,
   MemberRecord,
@@ -472,6 +473,7 @@ export default function SpinPage() {
           saveAllGroupAssignmentsToSupabase([
             {
               id: winningMember.id,
+              name: winningMember.name,
               team_id: targetGroup.id,
               team_name: targetGroup.name,
             },
@@ -522,7 +524,7 @@ export default function SpinPage() {
       groupCapacities[g.id] = assignedByGroup[g.id]?.length || 0;
     });
 
-    const newAssignments: { id: string; team_id: string; team_name: string }[] = [];
+    const newAssignments: { id: string; name?: string; team_id: string; team_name: string }[] = [];
 
     shuffled.forEach((member) => {
       // Find next group that has space
@@ -540,6 +542,7 @@ export default function SpinPage() {
 
       newAssignments.push({
         id: member.id,
+        name: member.name,
         team_id: assignedGroup.id,
         team_name: assignedGroup.name,
       });
@@ -576,9 +579,13 @@ export default function SpinPage() {
     }
   };
 
-  // Reset all assignments (kembalikan ke pool)
+  // Reset all assignments (kembalikan ke pool) dan seluruh skor papan tim ke 0
   const handleResetAssignments = () => {
-    if (!confirm("Apakah Anda yakin ingin mereset seluruh pembagian kelompok?")) {
+    if (
+      !confirm(
+        "Apakah Anda yakin ingin mereset seluruh pembagian kelompok dan mengatur ulang skor seluruh papan tim ke 0?"
+      )
+    ) {
       return;
     }
 
@@ -591,15 +598,30 @@ export default function SpinPage() {
     syncMembersState(reset);
     setSelectedWinner(null);
 
+    // Kirim sinyal update ke halaman arena dan papan agar skor langsung sinkron ke 0
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("bof_scores_reset_at", Date.now().toString());
+        window.dispatchEvent(new Event("bof_data_updated"));
+      } catch {}
+    }
+
     if (isSupabaseConfigured) {
       setSyncStatus("saving");
-      resetAllGroupAssignmentsInSupabase().then((res) => {
-        if (res.success) {
+      Promise.all([
+        resetAllGroupAssignmentsInSupabase(),
+        resetAllSubmissionsInSupabase(),
+      ]).then(([assignRes, submitRes]) => {
+        if (assignRes.success && submitRes.success) {
           setSyncStatus("saved");
-          setSyncMessage("Hasil pembagian kelompok telah direset (Tersimpan otomatis).");
+          setSyncMessage(
+            "Pembagian kelompok & seluruh skor papan tim berhasil diatur ulang ke 0 (Tersimpan otomatis)!"
+          );
         } else {
           setSyncStatus("error");
-          setSyncMessage(res.error || "Gagal mereset di Supabase");
+          setSyncMessage(
+            assignRes.error || submitRes.error || "Gagal mereset data di Supabase"
+          );
         }
       });
     }
@@ -614,10 +636,11 @@ export default function SpinPage() {
     );
     syncMembersState(updated);
 
+    const targetMember = members.find((m) => m.id === memberId);
     if (isSupabaseConfigured) {
       setSyncStatus("saving");
       saveAllGroupAssignmentsToSupabase([
-        { id: memberId, team_id: null, team_name: null },
+        { id: memberId, name: targetMember?.name || "", team_id: null, team_name: null },
       ]).then((res) => {
         if (res.success) {
           setSyncStatus("saved");
@@ -1429,10 +1452,10 @@ export default function SpinPage() {
               </div>
 
               {/* Auto Save Notice */}
-              <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-3 text-emerald-300 text-xs font-medium">
+              {/* <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-3 text-emerald-300 text-xs font-medium">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Pengaturan kelompok tersimpan otomatis ke database Supabase setiap kali diubah.</span>
-              </div>
+              </div> */}
             </div>
           </div>
         )}
