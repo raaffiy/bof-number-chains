@@ -277,9 +277,14 @@ export default function Home() {
     playSound.select(isMuted);
   };
 
+  // Cek apakah tim yang sedang dipilih memiliki anggota kelompok
+  const hasSelectedTeamMembers = Boolean(
+    selectedTeam && selectedTeam.members && selectedTeam.members.length > 0
+  );
+
   // Handler: Proceed to board list
   const handleProceedToBoards = () => {
-    if (!selectedTeamId) return;
+    if (!selectedTeamId || !hasSelectedTeamMembers) return;
     playSound.click(isMuted);
     setCurrentStep("board_select");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -456,6 +461,9 @@ export default function Home() {
         currentStep={currentStep}
         selectedTeam={selectedTeam}
         onStepChange={(step) => {
+          if (step !== "team_select" && !hasSelectedTeamMembers) {
+            return;
+          }
           playSound.click(isMuted);
           setCurrentStep(step);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -519,7 +527,15 @@ export default function Home() {
           {currentStep === "team_select" && (
             <>
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                    !selectedTeam
+                      ? "bg-slate-800 border-slate-700 text-slate-400"
+                      : hasSelectedTeamMembers
+                      ? "bg-blue-600/20 border-blue-500/30 text-blue-400"
+                      : "bg-amber-500/20 border-amber-500/40 text-amber-400"
+                  }`}
+                >
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div className="truncate">
@@ -529,19 +545,35 @@ export default function Home() {
                       ? selectedTeam.name
                       : "Belum Ada Tim Yang Dipilih"}
                   </div>
+                  {selectedTeam && !hasSelectedTeamMembers && (
+                    <div className="text-[11px] text-amber-400 font-medium">
+                      Kelompok belum memiliki anggota (0 orang)
+                    </div>
+                  )}
                 </div>
               </div>
 
               <button
                 onClick={handleProceedToBoards}
-                disabled={!selectedTeamId}
-                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
-                  selectedTeamId
-                    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95"
-                    : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                disabled={!selectedTeamId || !hasSelectedTeamMembers}
+                title={
+                  !selectedTeamId
+                    ? "Pilih tim terlebih dahulu"
+                    : !hasSelectedTeamMembers
+                    ? "Tim belum memiliki anggota kelompok"
+                    : "Lanjut ke Pilih Papan Soal"
+                }
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
+                  selectedTeamId && hasSelectedTeamMembers
+                    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95 cursor-pointer"
+                    : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/80"
                 }`}
               >
-                <span>Pilih Papan Soal</span>
+                <span>
+                  {selectedTeam && !hasSelectedTeamMembers
+                    ? "Belum Ada Anggota"
+                    : "Pilih Papan Soal"}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </>

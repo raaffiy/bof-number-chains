@@ -65,13 +65,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => {
-              if (selectedTeam) onStepChange("board_select");
+              if (selectedTeam && selectedTeam.members && selectedTeam.members.length > 0) {
+                onStepChange("board_select");
+              }
             }}
-            disabled={!selectedTeam}
+            disabled={!selectedTeam || !selectedTeam.members || selectedTeam.members.length === 0}
+            title={
+              !selectedTeam
+                ? "Pilih tim terlebih dahulu"
+                : selectedTeam.members.length === 0
+                ? "Tim belum memiliki anggota kelompok"
+                : "2. Papan Soal"
+            }
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all ${
               currentStep === "board_select"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                : !selectedTeam
+                : !selectedTeam || !selectedTeam.members || selectedTeam.members.length === 0
                 ? "text-slate-600 cursor-not-allowed"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
             }`}

@@ -30,7 +30,7 @@ export interface GameBoard {
   id: number;
   title: string;
   subtitle?: string;
-  difficulty: "Mudah" | "Sedang" | "Sulit" | "Sangat Sulit" | "Master";
+  difficulty: "Mudah" | "Sedang" | "Sulit" | "Sulit" | "Sulit";
   difficultyColor: string;
   points: number;
   targetVariable: string;
@@ -379,7 +379,7 @@ export const BOARDS_DATA: GameBoard[] = [
     id: 4,
     title: "Papan 04: Nested Logic Chain",
     subtitle: "Rantai Aljabar & Tanda Kurung Kompleks",
-    difficulty: "Sangat Sulit",
+    difficulty: "Sulit",
     difficultyColor: "text-orange-400 bg-orange-500/10 border-orange-500/30",
     points: 400,
     targetVariable: "F",
@@ -436,7 +436,7 @@ export const BOARDS_DATA: GameBoard[] = [
     id: 5,
     title: "Papan 05: Grand Master Finale",
     subtitle: "Rantai Puncak 7 Tahap (CoC Final Arena)",
-    difficulty: "Master",
+    difficulty: "Sulit",
     difficultyColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
     points: 500,
     targetVariable: "G",

@@ -88,9 +88,6 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                       <Users className="w-3.5 h-3.5 text-purple-400" />
                       <span>Daftar Anggota Kelompok</span>
                     </span>
-                    <span suppressHydrationWarning className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-purple-300 border border-purple-500/30">
-                      {team.members.length} Orang
-                    </span>
                   </div>
 
                   {team.members.length > 0 ? (
