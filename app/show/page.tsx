@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -17,10 +17,12 @@ import {
   Check,
   Sliders,
 } from "lucide-react";
-import { BOARDS_DATA, GameBoard, TEAMS_DATA } from "@/lib/game-data";
+import { BOARDS_DATA, GameBoard, TEAMS_DATA, Team, buildDynamicTeams } from "@/lib/game-data";
 import { LeaderboardModal } from "@/components/LeaderboardModal";
 import {
   fetchSubmissionsFromSupabase,
+  fetchMembersFromSupabase,
+  fetchGroupSettingsFromSupabase,
   isSupabaseConfigured,
   supabase,
 } from "@/lib/supabase";
@@ -132,6 +134,12 @@ export default function ShowPapanPage() {
   const [activeModalBoard, setActiveModalBoard] = useState<GameBoard | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
 
+  // Teams and dynamic group settings from Supabase
+  const [teams, setTeams] = useState<Team[]>(TEAMS_DATA);
+  const [groupType, setGroupType] = useState<"faculty" | "custom">("faculty");
+  const teamsRef = useRef<Team[]>(teams);
+  teamsRef.current = teams;
+
   // Leaderboard progress state
   const [teamProgress, setTeamProgress] = useState<
     Record<
@@ -161,55 +169,114 @@ export default function ShowPapanPage() {
     return initial;
   });
 
-  // Sync leaderboard with Supabase on mount and listen for real-time score updates
-  useEffect(() => {
+  // Load dynamic teams & member assignments from Supabase
+  const loadTeamsAndMembers = useCallback(() => {
     if (!isSupabaseConfigured) return;
 
-    const loadSubmissions = () => {
-      fetchSubmissionsFromSupabase().then((res) => {
-        if (res.success) {
-          const freshProgress: Record<
-            string,
-            { solvedBoards: number[]; totalScore: number; boardTimes: Record<number, number> }
-          > = {};
+    Promise.all([
+      fetchMembersFromSupabase(),
+      fetchGroupSettingsFromSupabase(),
+    ]).then(([membersRes, settingsRes]) => {
+      const membersData = membersRes.success && membersRes.data ? membersRes.data : [];
+      const settingsData = settingsRes.success && settingsRes.data ? settingsRes.data : null;
 
-          TEAMS_DATA.forEach((t) => {
-            freshProgress[t.id] = {
-              solvedBoards: [],
-              totalScore: 0,
-              boardTimes: {},
-            };
-          });
+      if (settingsData?.group_type) {
+        setGroupType(settingsData.group_type);
+      }
 
-          if (res.data && res.data.length > 0) {
-            res.data.forEach((sub) => {
-              if (!freshProgress[sub.team_id]) {
-                freshProgress[sub.team_id] = {
-                  solvedBoards: [],
-                  totalScore: 0,
-                  boardTimes: {},
-                };
-              }
-              if (sub.is_correct) {
-                if (!freshProgress[sub.team_id].solvedBoards.includes(sub.board_id)) {
-                  freshProgress[sub.team_id].solvedBoards.push(sub.board_id);
-                  freshProgress[sub.team_id].totalScore += sub.points_awarded;
-                }
-                if (
-                  !freshProgress[sub.team_id].boardTimes[sub.board_id] ||
-                  sub.time_spent_seconds < freshProgress[sub.team_id].boardTimes[sub.board_id]
-                ) {
-                  freshProgress[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
-                }
-              }
-            });
-          }
-
-          setTeamProgress(freshProgress);
+      if (membersData.length > 0 || settingsData) {
+        const dynamicTeams = buildDynamicTeams(membersData, settingsData);
+        if (dynamicTeams.length > 0) {
+          setTeams(dynamicTeams);
         }
-      });
-    };
 
+        // Cache for offline / instant client hydration
+        if (typeof window !== "undefined") {
+          try {
+            if (membersData.length > 0) {
+              localStorage.setItem("bof_members_cache", JSON.stringify(membersData));
+            }
+            if (settingsData) {
+              localStorage.setItem("bof_group_settings_cache", JSON.stringify(settingsData));
+            }
+          } catch (e) {
+            console.warn("Cache sync error", e);
+          }
+        }
+      }
+    });
+  }, []);
+
+  // Sync leaderboard with Supabase on mount and compute score / board times
+  const loadSubmissions = useCallback(() => {
+    if (!isSupabaseConfigured) return;
+
+    fetchSubmissionsFromSupabase().then((res) => {
+      if (res.success) {
+        const currentTeams = teamsRef.current;
+        const freshProgress: Record<
+          string,
+          { solvedBoards: number[]; totalScore: number; boardTimes: Record<number, number> }
+        > = {};
+
+        // Inisialisasi awal seluruh tim yang terdaftar di database
+        currentTeams.forEach((t) => {
+          freshProgress[t.id] = {
+            solvedBoards: [],
+            totalScore: 0,
+            boardTimes: {},
+          };
+        });
+
+        if (res.data && res.data.length > 0) {
+          res.data.forEach((sub) => {
+            if (!freshProgress[sub.team_id]) {
+              freshProgress[sub.team_id] = {
+                solvedBoards: [],
+                totalScore: 0,
+                boardTimes: {},
+              };
+            }
+            if (sub.is_correct) {
+              if (!freshProgress[sub.team_id].solvedBoards.includes(sub.board_id)) {
+                freshProgress[sub.team_id].solvedBoards.push(sub.board_id);
+                freshProgress[sub.team_id].totalScore += sub.points_awarded;
+              }
+              if (
+                !freshProgress[sub.team_id].boardTimes[sub.board_id] ||
+                sub.time_spent_seconds < freshProgress[sub.team_id].boardTimes[sub.board_id]
+              ) {
+                freshProgress[sub.team_id].boardTimes[sub.board_id] = sub.time_spent_seconds;
+              }
+            }
+          });
+        }
+
+        setTeamProgress(freshProgress);
+      }
+    });
+  }, []);
+
+  // Real-time synchronization listener for Supabase submissions, members, and group settings
+  useEffect(() => {
+    // Hydrate cached teams & settings immediately
+    try {
+      const cachedMembers = localStorage.getItem("bof_members_cache");
+      const cachedSettings = localStorage.getItem("bof_group_settings_cache");
+      if (cachedMembers) {
+        const parsedMembers = JSON.parse(cachedMembers);
+        const parsedSettings = cachedSettings ? JSON.parse(cachedSettings) : null;
+        if (parsedSettings?.group_type) {
+          setGroupType(parsedSettings.group_type);
+        }
+        const dynamicTeams = buildDynamicTeams(parsedMembers, parsedSettings);
+        if (dynamicTeams.length > 0) {
+          setTeams(dynamicTeams);
+        }
+      }
+    } catch {}
+
+    loadTeamsAndMembers();
     loadSubmissions();
 
     // Debounce listener to avoid redundant rapid calls
@@ -217,6 +284,7 @@ export default function ShowPapanPage() {
     const handleDebouncedSync = () => {
       if (syncTimeout) clearTimeout(syncTimeout);
       syncTimeout = setTimeout(() => {
+        loadTeamsAndMembers();
         loadSubmissions();
       }, 300);
     };
@@ -226,7 +294,7 @@ export default function ShowPapanPage() {
     window.addEventListener("storage", handleDebouncedSync);
     window.addEventListener("bof_data_updated", handleDebouncedSync);
 
-    // Supabase Realtime channel for live score updates on projector
+    // Supabase Realtime channel for live score, member, and group settings updates on projector
     let realtimeChannel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
     if (supabase) {
       try {
@@ -236,6 +304,22 @@ export default function ShowPapanPage() {
             "postgres_changes",
             { event: "*", schema: "public", table: "submissions" },
             () => {
+              loadSubmissions();
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "members" },
+            () => {
+              loadTeamsAndMembers();
+              loadSubmissions();
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "group_settings" },
+            () => {
+              loadTeamsAndMembers();
               loadSubmissions();
             }
           )
@@ -254,7 +338,7 @@ export default function ShowPapanPage() {
         supabase.removeChannel(realtimeChannel);
       }
     };
-  }, []);
+  }, [loadTeamsAndMembers, loadSubmissions]);
 
   // Set Timer State
   const [timerDuration, setTimerDuration] = useState<number>(300); // 5 menit default
@@ -365,7 +449,7 @@ export default function ShowPapanPage() {
                 PAPAN SOAL
               </span>
               <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider hidden sm:inline-block">
-                Battle of Faculties
+                {groupType === "custom" ? "Arena Kelompok" : "Battle of Faculties"}
               </span>
             </div>
           </div>
@@ -521,18 +605,19 @@ export default function ShowPapanPage() {
             )}
           </div>
 
-          {/* Leaderboard Button - terletak di samping kiri button "Buka Kunci" */}
-          {/* <button
+          {/* Leaderboard Button - terletak di samping tombol Set Timer */}
+          <button
             onClick={() => setShowLeaderboard(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-md shadow-amber-500/20 border border-amber-300/40 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            title="Lihat Papan Peringkat (Leaderboard)"
           >
             <Trophy className="w-3.5 h-3.5 fill-slate-950" />
             <span className="hidden sm:inline">Leaderboard</span>
             <span className="sm:hidden">Rank</span>
-          </button> */}
+          </button>
 
           {/* Solution Toggle Button (Buka Kunci / Tutup Kunci) */}
-          {/* <button
+          <button
             onClick={() => setShowSolutions(!showSolutions)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
               showSolutions
@@ -551,7 +636,7 @@ export default function ShowPapanPage() {
                 <span className="hidden sm:inline">Buka Kunci</span>
               </>
             )}
-          </button> */}
+          </button>
         </div>
       </header>
 
@@ -771,12 +856,18 @@ export default function ShowPapanPage() {
         </div>
       )}
 
-      {/* Faculty Leaderboard Modal */}
+      {/* Faculty / Custom Group Leaderboard Modal */}
       <LeaderboardModal
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
         teamProgress={teamProgress}
         selectedTeamId={null}
+        teams={teams}
+        groupType={groupType}
+        onRefresh={() => {
+          loadTeamsAndMembers();
+          loadSubmissions();
+        }}
       />
     </div>
   );
