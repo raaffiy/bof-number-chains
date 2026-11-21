@@ -379,11 +379,10 @@ export default function ShowPapanPage() {
               {/* Trigger Button: Opens Time Selector Popover */}
               <button
                 onClick={() => setIsConfigOpen(!isConfigOpen)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  isConfigOpen
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:text-white hover:bg-slate-800"
-                }`}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${isConfigOpen
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-300 hover:text-white hover:bg-slate-800"
+                  }`}
                 title="Atur Durasi Timer"
               >
                 <Clock className="w-3.5 h-3.5 text-blue-400" />
@@ -393,15 +392,14 @@ export default function ShowPapanPage() {
 
               {/* Digital Countdown Display */}
               <div
-                className={`font-mono font-black text-xs sm:text-sm px-2 py-0.5 rounded-md transition-all ${
-                  timeLeft === 0
-                    ? "bg-rose-500/25 text-rose-300 border border-rose-500/50 animate-pulse"
-                    : timeLeft <= 10 && isRunning
+                className={`font-mono font-black text-xs sm:text-sm px-2 py-0.5 rounded-md transition-all ${timeLeft === 0
+                  ? "bg-rose-500/25 text-rose-300 border border-rose-500/50 animate-pulse"
+                  : timeLeft <= 10 && isRunning
                     ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 animate-pulse"
                     : isRunning
-                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
-                    : "bg-slate-950 text-slate-200 border border-slate-800"
-                }`}
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                      : "bg-slate-950 text-slate-200 border border-slate-800"
+                  }`}
               >
                 {formatTimerDisplay(timeLeft)}
               </div>
@@ -410,11 +408,10 @@ export default function ShowPapanPage() {
               <button
                 onClick={togglePlayPause}
                 disabled={timeLeft === 0}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  isRunning
-                    ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40"
-                    : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                }`}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${isRunning
+                  ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40"
+                  : "bg-blue-600 text-white hover:bg-blue-500 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  }`}
                 title={isRunning ? "Jeda Timer" : "Mulai Timer"}
               >
                 {isRunning ? (
@@ -469,11 +466,10 @@ export default function ShowPapanPage() {
                         <button
                           key={preset.sec}
                           onClick={() => handleSetPreset(preset.sec)}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                            isActive
-                              ? "bg-blue-600 text-white shadow-sm"
-                              : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
-                          }`}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${isActive
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                            }`}
                         >
                           {isActive && <Check className="w-3 h-3 text-white" />}
                           <span>{preset.label}</span>
@@ -526,17 +522,17 @@ export default function ShowPapanPage() {
           </div>
 
           {/* Leaderboard Button - terletak di samping kiri button "Buka Kunci" */}
-          <button
+          {/* <button
             onClick={() => setShowLeaderboard(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-md shadow-amber-500/20 border border-amber-300/40 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           >
             <Trophy className="w-3.5 h-3.5 fill-slate-950" />
             <span className="hidden sm:inline">Leaderboard</span>
             <span className="sm:hidden">Rank</span>
-          </button>
+          </button> */}
 
           {/* Solution Toggle Button (Buka Kunci / Tutup Kunci) */}
-          <button
+          {/* <button
             onClick={() => setShowSolutions(!showSolutions)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
               showSolutions
@@ -555,7 +551,7 @@ export default function ShowPapanPage() {
                 <span className="hidden sm:inline">Buka Kunci</span>
               </>
             )}
-          </button>
+          </button> */}
         </div>
       </header>
 
@@ -631,9 +627,8 @@ export default function ShowPapanPage() {
                         return (
                           <div
                             key={step.stepIndex}
-                            className={`bg-white border border-slate-300 rounded-lg p-1 sm:p-1.5 flex flex-col items-center justify-center text-center shadow-xs transition-colors relative ${
-                              spanTwo ? "col-span-2 bg-slate-50/60" : ""
-                            }`}
+                            className={`bg-white border border-slate-300 rounded-lg p-1 sm:p-1.5 flex flex-col items-center justify-center text-center shadow-xs transition-colors relative ${spanTwo ? "col-span-2 bg-slate-50/60" : ""
+                              }`}
                           >
                             {/* Target Variable Indicator */}
                             {isTarget && (
@@ -730,9 +725,8 @@ export default function ShowPapanPage() {
                   return (
                     <div
                       key={step.stepIndex}
-                      className={`bg-white border border-slate-300 rounded-xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs relative ${
-                        isLastOdd ? "col-span-2 bg-slate-50/50" : ""
-                      }`}
+                      className={`bg-white border border-slate-300 rounded-xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs relative ${isLastOdd ? "col-span-2 bg-slate-50/50" : ""
+                        }`}
                     >
                       {isTarget && (
                         <span className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-300 font-sans">
